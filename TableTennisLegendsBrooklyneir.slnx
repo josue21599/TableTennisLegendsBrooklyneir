@@ -1,0 +1,6 @@
+﻿<Solution>
+  <Project Path="Brooklyneir.Runtime.csproj" />
+  <Project Path="Brooklyneir.Tests.EditMode.csproj" />
+  <Project Path="Brooklyneir.Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+</Solution>
