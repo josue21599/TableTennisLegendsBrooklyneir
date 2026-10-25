@@ -264,7 +264,7 @@ Assets/
 
 **Josué Pérez Borja** · Estudiante de 2.º de DAM (Desarrollo de Aplicaciones Multiplataforma)
 
-- GitHub: [@jose21599](https://github.com/jose21599)
+- GitHub: [@josue21599](https://github.com/josue21599)
 
 > Proyecto desarrollado con apoyo de IA (Claude) en la generación de código. La puesta en marcha en Unity, las pruebas, la depuración y las decisiones de diseño y jugabilidad son mías.
 
