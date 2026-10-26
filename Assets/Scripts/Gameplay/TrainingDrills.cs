@@ -38,19 +38,19 @@ namespace Brooklyneir.Gameplay
                     _all.Add(new DrillDefinition
                     {
                         Id = "precision", Kind = DrillKind.Precision, Title = "Objetivos de precisión",
-                        Instructions = "Haz botar la pelota dentro del aro dorado. Golpea con el borde de la pala para dirigirla.",
+                        Instructions = "Haz botar la pelota dentro del aro dorado. Golpea en diagonal hacia arriba o hacia abajo para llevarla a ese lado; recto va al centro.",
                         Balls = 12, OneStar = 3, TwoStars = 6, ThreeStars = 9
                     });
                     _all.Add(new DrillDefinition
                     {
                         Id = "control", Kind = DrillKind.Control, Title = "Control izquierda-derecha",
-                        Instructions = "Alterna: cada bola debe caer en la mitad que se ilumina. Mueve la raqueta al lado contrario de donde quieres apuntar.",
+                        Instructions = "Alterna: cada bola debe caer en la mitad que se ilumina. Golpea en diagonal hacia arriba para la mitad de arriba y hacia abajo para la de abajo.",
                         Balls = 12, OneStar = 5, TwoStars = 8, ThreeStars = 10
                     });
                     _all.Add(new DrillDefinition
                     {
                         Id = "spin", Kind = DrillKind.Spin, Title = "Práctica de efectos",
-                        Instructions = "Golpea deslizando el dedo de lado para dar efecto lateral. Cuenta si la bola entra con efecto.",
+                        Instructions = "Golpea moviendo la pala rápido hacia arriba o hacia abajo, de lado y sin empujar hacia la red. Cuenta si la bola entra con efecto.",
                         Balls = 10, OneStar = 3, TwoStars = 6, ThreeStars = 8
                     });
                     _all.Add(new DrillDefinition
