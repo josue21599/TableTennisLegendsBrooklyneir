@@ -22,6 +22,8 @@ namespace Brooklyneir.Gameplay
         public RacketDefinition Definition { get; private set; }
         public RacketStatModel Stats { get; private set; }
         public Vector3 Position { get; private set; }
+        /// <summary>Position at the start of this frame's movement (for swept hit detection).</summary>
+        public Vector3 PreviousPosition { get; private set; }
         public Vector3 Target { get; private set; }
         public bool Assist { get; set; }
         public float VisualHeight { get; private set; }
@@ -30,6 +32,7 @@ namespace Brooklyneir.Gameplay
         Transform _model;
         GameObject _ice;
         readonly Vector3[] _history = new Vector3[8];
+        readonly Vector3[] _targetHistory = new Vector3[8];
         readonly float[] _historyTime = new float[8];
         int _historyIndex;
         float _clock;
@@ -37,8 +40,14 @@ namespace Brooklyneir.Gameplay
         float _swingStrength;
         float _lean;
         Vector3 _smoothedVelocity;
+        Vector3 _strokeVelocity;
         Vector3 _syntheticSwing;
         bool _useSynthetic;
+        bool _hasCross;
+        Vector3 _cross;
+        float _crossTime;
+        bool _magnet;
+        Vector3 _magnetAccum;
 
         public void Setup(int player, RacketDefinition def, RacketTuning tuning, Color playerColor, Color skin)
         {
@@ -80,9 +89,13 @@ namespace Brooklyneir.Gameplay
         public void ResetToHome()
         {
             Position = Home;
+            PreviousPosition = Home;
             Target = Home;
-            for (int i = 0; i < _history.Length; i++) { _history[i] = Position; _historyTime[i] = _clock - i * 0.02f; }
+            for (int i = 0; i < _history.Length; i++) { _history[i] = Position; _targetHistory[i] = Position; _historyTime[i] = _clock - i * 0.02f; }
             _smoothedVelocity = Vector3.zero;
+            _strokeVelocity = Vector3.zero;
+            _magnetAccum = Vector3.zero;
+            _hasCross = false;
             _swingTimer = -1f;
             VisualHeight = RestHeight;
             ApplyTransform(Vector3.zero);
@@ -118,10 +131,24 @@ namespace Brooklyneir.Gameplay
             _useSynthetic = false;
         }
 
-        /// <summary>Velocity of the racket over the last ~0.08 s (m/s, world).</summary>
+        /// <summary>
+        /// The stroke: how the player's finger (the racket's target) has been moving over the last
+        /// ~0.1 s (m/s, world), capped at the racket's top speed. The finger leads the racket, so
+        /// this is the stroke the player is making at the moment of contact, not the racket's
+        /// delayed catch-up movement.
+        /// </summary>
         public Vector3 SwingVelocity
         {
-            get { return _useSynthetic ? _syntheticSwing : _smoothedVelocity; }
+            get { return _useSynthetic ? _syntheticSwing : _strokeVelocity; }
+        }
+
+        /// <summary>Predicted crossing of the incoming ball through this racket's plane.</summary>
+        public void SetPrediction(bool has, Vector3 crossing, float timeToCrossing, bool magnet)
+        {
+            _hasCross = has;
+            _cross = crossing;
+            _crossTime = timeToCrossing;
+            _magnet = magnet;
         }
 
         public void SetFrozen(bool frozen)
@@ -145,6 +172,7 @@ namespace Brooklyneir.Gameplay
         {
             if (dt <= 0f) return;
             _clock += dt;
+            PreviousPosition = Position;
             float maxSpeed = FollowSpeed * Mathf.Max(0.05f, followMultiplier);
             Vector3 next = Vector3.MoveTowards(Position, Target, maxSpeed * dt);
             // Exponential smoothing on top of the speed limit removes jitter from noisy touches.
@@ -152,8 +180,26 @@ namespace Brooklyneir.Gameplay
             next = Vector3.Lerp(Position, next, Mathf.Max(k, 0.5f));
             Position = Clamp(next);
 
+            // Gentle pull onto the ball just before contact (human players). The pull is kept out
+            // of the measured swing, so it never changes the shot type or its direction.
+            if (_magnet && _hasCross && _crossTime < _t.magnetWindow && followMultiplier > 0.2f)
+            {
+                float dx = _cross.x - Position.x;
+                float range = Reach + _t.magnetRange + (Assist ? 0.08f : 0f);
+                if (Mathf.Abs(dx) < range && Mathf.Abs(dx) > 0.005f)
+                {
+                    float step = Mathf.Sign(dx) * Mathf.Min(Mathf.Abs(dx), _t.magnetSpeed * dt);
+                    Vector3 before = Position;
+                    Position = Clamp(Position + new Vector3(step, 0f, 0f));
+                    Vector3 moved = Position - before;
+                    Target = Clamp(Target + moved);
+                    _magnetAccum += moved;
+                }
+            }
+
             _historyIndex = (_historyIndex + 1) % _history.Length;
-            _history[_historyIndex] = Position;
+            _history[_historyIndex] = Position - _magnetAccum;
+            _targetHistory[_historyIndex] = Target - _magnetAccum;
             _historyTime[_historyIndex] = _clock;
             int oldest = _historyIndex;
             for (int i = 1; i < _history.Length; i++)
@@ -163,19 +209,44 @@ namespace Brooklyneir.Gameplay
                 oldest = idx;
             }
             float span = _clock - _historyTime[oldest];
-            Vector3 v = span > 1e-4f ? (Position - _history[oldest]) / span : Vector3.zero;
+            Vector3 v = span > 1e-4f ? (Position - _magnetAccum - _history[oldest]) / span : Vector3.zero;
             _smoothedVelocity = Vector3.Lerp(_smoothedVelocity, v, 0.6f);
 
+            int oldestT = _historyIndex;
+            for (int i = 1; i < _targetHistory.Length; i++)
+            {
+                int idx = (_historyIndex - i + _targetHistory.Length) % _targetHistory.Length;
+                if (_clock - _historyTime[idx] > 0.1f) break;
+                oldestT = idx;
+            }
+            float spanT = _clock - _historyTime[oldestT];
+            Vector3 vt = spanT > 1e-4f ? (Target - _magnetAccum - _targetHistory[oldestT]) / spanT : Vector3.zero;
+            vt.y = 0f;
+            vt = Vector3.ClampMagnitude(vt, maxSpeed);
+            _strokeVelocity = Vector3.Lerp(_strokeVelocity, vt, 0.7f);
+
             // Visual height: rise towards an incoming ball when it is close.
+            // With a predicted crossing, the blade goes to the exact height where the ball will
+            // pass, so on screen the ball meets the blade whenever the hit will register.
             float targetY = RestHeight;
-            if (ballIncoming)
+            float heightSharpness = 14f;
+            // Same window as the hit test, so the blade is never drawn where the ball cannot be hit.
+            float minY = TableGeometry.TopY + _t.minHittableHeight, maxY = TableGeometry.TopY + _t.maxHittableHeight;
+            if (ballIncoming && _hasCross)
+            {
+                float w = Mathf.Clamp01(1f - (_crossTime - 0.25f) / 0.6f);
+                targetY = Mathf.Lerp(RestHeight, Mathf.Clamp(_cross.y, minY, maxY), w);
+                heightSharpness = 22f;
+            }
+            else if (ballIncoming)
             {
                 float dz = Mathf.Abs(ballPos.z - Position.z);
                 float w = Mathf.Clamp01(1f - dz / 1.6f);
-                targetY = Mathf.Lerp(RestHeight, Mathf.Clamp(ballPos.y, TableGeometry.TopY + 0.08f, TableGeometry.TopY + 1.1f), w);
+                targetY = Mathf.Lerp(RestHeight, Mathf.Clamp(ballPos.y, minY, maxY), w);
             }
-            VisualHeight = Mathf.Lerp(VisualHeight, targetY, 1f - Mathf.Exp(-14f * dt));
-            float desiredLean = Mathf.Clamp((ballPos.x - Position.x) * 2.2f, -1f, 1f);
+            VisualHeight = Mathf.Lerp(VisualHeight, targetY, 1f - Mathf.Exp(-heightSharpness * dt));
+            float leanX = ballIncoming && _hasCross ? _cross.x : ballPos.x;
+            float desiredLean = Mathf.Clamp((leanX - Position.x) * 2.2f, -1f, 1f);
             _lean = Mathf.Lerp(_lean, desiredLean, 1f - Mathf.Exp(-10f * dt));
             if (_swingTimer >= 0f)
             {
@@ -196,9 +267,10 @@ namespace Brooklyneir.Gameplay
                 swing = Mathf.Sin(k * Mathf.PI) * (25f + 30f * _swingStrength);
             }
             // Pitch rises with the swing (blade sweeps up and over the ball), roll follows the ball side.
-            float pitch = 28f + swing;
+            float fwdVel = velocity.z * fwd;
+            float pitch = 28f + swing + Mathf.Clamp(fwdVel * 5f, -18f, 22f);
             float roll = -_lean * 35f * fwd;
-            float yaw = Mathf.Clamp(velocity.x * 5f, -25f, 25f) * fwd;
+            float yaw = Mathf.Clamp(velocity.x * 9f, -35f, 35f) * fwd;
             Quaternion rot = RacketModelBuilder.Pose(fwd, pitch, roll, yaw);
             transform.position = centre;
             if (_model != null)

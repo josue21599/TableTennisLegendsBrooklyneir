@@ -209,6 +209,175 @@ namespace Brooklyneir.Tests
         }
 
         [Test]
+        public void SwingDirectionDecidesShot()
+        {
+            ShotModel m = new ShotModel(_cfg, new GameRandom(1));
+            float f, l;
+            float fast = _cfg.shots.fastSwipeThreshold + 0.3f;
+            // Diagonal forward swing: still a forward shot, not spin.
+            Assert.AreEqual(ShotType.Fast, m.Classify(Ctx(new Vector3(fast * 0.7f, 0, fast), 0.3f), out f, out l));
+            // Sideways swing: spin.
+            Assert.AreEqual(ShotType.Spin, m.Classify(Ctx(new Vector3(_cfg.shots.spinSwipeThreshold + 0.4f, 0, 0.3f), 0.3f), out f, out l));
+            // Backwards (even slightly diagonal): defensive.
+            Assert.AreEqual(ShotType.Defensive, m.Classify(Ctx(new Vector3(0.6f, 0, _cfg.shots.defensiveSwipeThreshold - 0.3f), 0.3f), out f, out l));
+            // A strong but diagonal swing is not a smash: smashes need a straight stroke.
+            float smash = _cfg.shots.smashSwipeThreshold + 0.3f;
+            Assert.AreEqual(ShotType.Fast, m.Classify(Ctx(new Vector3(smash * 0.8f, 0, smash), 0.4f), out f, out l));
+        }
+
+        [Test]
+        public void DiagonalSwingSendsBallToThatSide()
+        {
+            _cfg.shots.humanNoiseMultiplier = 0f;
+            float speed = _cfg.shots.fastSwipeThreshold + 0.3f;
+            ShotModel m = new ShotModel(_cfg, new GameRandom(3));
+            ShotContext straight = Ctx(new Vector3(0, 0, speed), 0.3f);
+            straight.NoiseMultiplier = 0.0001f;
+            ShotContext left = Ctx(new Vector3(-speed * 0.8f, 0, speed), 0.3f);
+            left.NoiseMultiplier = 0.0001f;
+            ShotContext right = Ctx(new Vector3(speed * 0.8f, 0, speed), 0.3f);
+            right.NoiseMultiplier = 0.0001f;
+            Assert.AreEqual(0f, m.Compute(straight).IntendedTarget.x, 0.01f, "straight swing goes straight");
+            // Threshold 0.2 m (was 0.3 with the old fixed 0.42 m lanes): the stroke direction now
+            // shifts the target continuously with LateralShift, and this 2.16 m/s diagonal gives
+            // ~0.29 m, inside the moderate arcade range by design.
+            Assert.Less(m.Compute(left).IntendedTarget.x, -0.2f, "diagonal swing to -x lands on -x");
+            Assert.Greater(m.Compute(right).IntendedTarget.x, 0.2f, "diagonal swing to +x lands on +x");
+        }
+
+        ShotContext Exact(int hitter, Vector3 swing, float height)
+        {
+            ShotContext c = Ctx(swing, height);
+            c.Hitter = hitter;
+            c.ContactPoint = new Vector3(0f, TableGeometry.TopY + height, -TableGeometry.ForwardSign(hitter) * 1.85f);
+            c.NoiseMultiplier = 0.0001f;
+            return c;
+        }
+
+        [Test]
+        public void LeftSwingSendsBallToOpponentsRight()
+        {
+            // Player's left: -x for player 1 (faces +z), +x for player 2 (faces -z). The opponent's
+            // right is the same world side, so the target moves with the stroke.
+            ShotModel m = new ShotModel(_cfg, new GameRandom(4));
+            float fwd = 1.2f;
+            Vector3 t1 = m.Compute(Exact(0, new Vector3(-1.8f, 0f, fwd), 0.3f)).IntendedTarget;
+            Vector3 t2 = m.Compute(Exact(1, new Vector3(1.8f, 0f, -fwd), 0.3f)).IntendedTarget;
+            Assert.Less(t1.x, -0.15f, "P1 left stroke -> P2's right (-x)");
+            Assert.Greater(t2.x, 0.15f, "P2 left stroke -> P1's right (+x)");
+        }
+
+        [Test]
+        public void RightSwingSendsBallToOpponentsLeft()
+        {
+            ShotModel m = new ShotModel(_cfg, new GameRandom(4));
+            float fwd = 1.2f;
+            Vector3 t1 = m.Compute(Exact(0, new Vector3(1.8f, 0f, fwd), 0.3f)).IntendedTarget;
+            Vector3 t2 = m.Compute(Exact(1, new Vector3(-1.8f, 0f, -fwd), 0.3f)).IntendedTarget;
+            Assert.Greater(t1.x, 0.15f, "P1 right stroke -> P2's left (+x)");
+            Assert.Less(t2.x, -0.15f, "P2 right stroke -> P1's left (-x)");
+        }
+
+        [Test]
+        public void LateralShiftIsBounded()
+        {
+            ShotModel m = new ShotModel(_cfg, new GameRandom(9));
+            for (int i = 0; i <= 100; i++)
+            {
+                float v = i * 0.5f; // 0..50 m/s
+                Assert.LessOrEqual(Mathf.Abs(ShotModel.LateralShift(v, _cfg.shots)), _cfg.shots.maxShiftX + 1e-6f);
+                Assert.LessOrEqual(Mathf.Abs(ShotModel.LateralShift(-v, _cfg.shots)), _cfg.shots.maxShiftX + 1e-6f);
+                Vector3 t = m.Compute(Exact(0, new Vector3(v, 0f, 1f), 0.3f)).IntendedTarget;
+                Assert.LessOrEqual(Mathf.Abs(t.x), _cfg.shots.normal.maxAimX + 1e-4f);
+            }
+        }
+
+        [Test]
+        public void LateralShiftIsMonotonic()
+        {
+            Assert.AreEqual(0f, ShotModel.LateralShift(_cfg.shots.lateralDeadzone * 0.99f, _cfg.shots), "deadzone is exactly straight");
+            Assert.AreEqual(0f, ShotModel.LateralShift(-_cfg.shots.lateralDeadzone * 0.99f, _cfg.shots));
+            float prevPos = 0f, prevNeg = 0f;
+            for (int i = 1; i <= 200; i++)
+            {
+                float v = i * 0.05f; // 0..10 m/s
+                float pos = ShotModel.LateralShift(v, _cfg.shots);
+                float neg = ShotModel.LateralShift(-v, _cfg.shots);
+                Assert.GreaterOrEqual(pos, prevPos, "more sideways stroke never gives less shift");
+                Assert.LessOrEqual(neg, prevNeg);
+                Assert.AreEqual(pos, -neg, 1e-6f, "symmetric");
+                prevPos = pos;
+                prevNeg = neg;
+            }
+        }
+
+        [Test]
+        public void SameSeedSameShot()
+        {
+            ShotModel a = new ShotModel(_cfg, new GameRandom(77));
+            ShotModel b = new ShotModel(_cfg, new GameRandom(77));
+            for (int i = 0; i < 50; i++)
+            {
+                ShotContext c = Ctx(new Vector3(i * 0.1f - 2.5f, 0f, 0.5f + i * 0.05f), 0.25f + i * 0.004f);
+                ShotResult ra = a.Compute(c), rb = b.Compute(c);
+                Assert.AreEqual(ra.Type, rb.Type);
+                Assert.AreEqual(ra.Velocity.x, rb.Velocity.x);
+                Assert.AreEqual(ra.Velocity.y, rb.Velocity.y);
+                Assert.AreEqual(ra.Velocity.z, rb.Velocity.z);
+                Assert.AreEqual(ra.NoisyTarget.x, rb.NoisyTarget.x);
+            }
+        }
+
+        [Test]
+        public void LobAndServeUseReducedShift()
+        {
+            ShotModel m = new ShotModel(_cfg, new GameRandom(5));
+            float lat = 1.5f;
+            float normal = m.Compute(Exact(0, new Vector3(lat, 0f, 0.8f), 0.3f)).IntendedTarget.x;
+            ShotContext lobCtx = Exact(0, new Vector3(lat, 0f, _cfg.shots.defensiveSwipeThreshold - 0.6f), 0.3f);
+            ShotResult lob = m.Compute(lobCtx);
+            Assert.AreEqual(ShotType.Defensive, lob.Type);
+            ShotContext serveCtx = Exact(0, new Vector3(lat, 0f, 0.3f), 0.3f);
+            serveCtx.IsServe = true; // contact at x = 0, so the serve base line is the centre
+            float serve = m.Compute(serveCtx).IntendedTarget.x;
+            Assert.AreEqual(normal * _cfg.shots.lobShiftFactor, lob.IntendedTarget.x, 0.005f);
+            Assert.AreEqual(normal * _cfg.shots.lobShiftFactor, serve, 0.005f);
+        }
+
+        [Test]
+        public void ForwardSwingGoesDeeper()
+        {
+            ShotModel m = new ShotModel(_cfg, new GameRandom(6));
+            float prev = 0f;
+            for (int i = 0; i <= 20; i++)
+            {
+                float f = i * 0.1f; // 0..2 m/s: stays a normal shot (below the fast threshold)
+                ShotResult r = m.Compute(Exact(0, new Vector3(0f, 0f, f), 0.3f));
+                Assert.AreEqual(ShotType.Normal, r.Type);
+                float depth = r.IntendedTarget.z;
+                Assert.GreaterOrEqual(depth, prev - 1e-5f);
+                Assert.GreaterOrEqual(depth, _cfg.shots.normalBaseDepth - 1e-4f);
+                Assert.LessOrEqual(depth, _cfg.shots.normalBaseDepth + _cfg.shots.depthGain + 1e-4f);
+                prev = depth;
+            }
+        }
+
+        [Test]
+        public void SpinStrokeStillShiftsTheBall()
+        {
+            // The spin shot lost its fixed 0.22 m offset: its side comes from LateralShift.
+            ShotModel m = new ShotModel(_cfg, new GameRandom(8));
+            float lat = _cfg.shots.spinSwipeThreshold + 0.4f;
+            ShotResult right = m.Compute(Exact(0, new Vector3(lat, 0f, 0.3f), 0.3f));
+            ShotResult left = m.Compute(Exact(0, new Vector3(-lat, 0f, 0.3f), 0.3f));
+            Assert.AreEqual(ShotType.Spin, right.Type);
+            Assert.AreEqual(ShotType.Spin, left.Type);
+            Assert.Greater(right.IntendedTarget.x, 0.25f, "a sideways spin stroke still shifts the target clearly");
+            Assert.Less(left.IntendedTarget.x, -0.25f);
+            Assert.Greater(right.SideSpin, 0f, "and curves towards the same side");
+        }
+
+        [Test]
         public void PlayerTwoForwardIsNegativeZ()
         {
             ShotModel m = new ShotModel(_cfg, new GameRandom(1));

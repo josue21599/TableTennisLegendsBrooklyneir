@@ -260,9 +260,9 @@ namespace Brooklyneir.UI
             {
                 case 0:
                     Row(0, IconId.TwoPlayers, "DOS JUGADORES, UN MÓVIL", "Con el móvil en horizontal, el jugador 1 juega con la mitad izquierda de la pantalla y el jugador 2 con la derecha. Cada uno usa un dedo a la vez.");
-                    Row(1, IconId.ArrowRight, "MUEVE LA RAQUETA", "Arrastra el dedo por tu mitad: la raqueta se mueve lo mismo que tu dedo, sin taparla. La altura se ajusta sola a la pelota.");
-                    Row(2, IconId.Smash, "GOLPEA CON INTENCIÓN", "Al llegar la pelota, desliza hacia la red para un golpe rápido o un remate (si la bola viene alta). Desliza hacia atrás para defender.");
-                    Row(3, IconId.Curve, "APUNTA Y DA EFECTO", "Golpear con el borde de la pala desvía la pelota. Deslizar de lado al golpear le da efecto curvo.");
+                    Row(1, IconId.ArrowRight, "MUEVE LA RAQUETA", "Arrastra el dedo por tu mitad. La raqueta te sigue y su altura se ajusta sola a la pelota.");
+                    Row(2, IconId.Smash, "EL GOLPE ES TU MOVIMIENTO", "Atraviesa la pelota: recto hacia la red = recto (rápido y bola alta = REMATE). En diagonal = hacia ese lado. Hacia atrás = globo.");
+                    Row(3, IconId.Curve, "EFECTO", "Golpea moviendo la pala hacia arriba o abajo de la pantalla: la pelota curva hacia ese lado. Sin moverla, golpe suave y seguro.");
                     break;
                 case 1:
                     Row(0, IconId.Ball, "SAQUE", "Toca la pantalla para sacar cuando la pelota esté en tu raqueta. El saque va directo al campo rival. Se cambia de saque cada 2 puntos.");

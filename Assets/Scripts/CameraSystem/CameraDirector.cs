@@ -23,7 +23,7 @@ namespace Brooklyneir.CameraSystem
         const float Fov = 38f;            // menus / fallback
         const float HorizontalFov = 60f;  // match: across the screen's long axis
         const float Elevation = 52f;
-        const float HalfCoverage = 2.9f;  // metres along the table kept visible each side (racket zones + perspective margin)
+        const float HalfCoverage = 3.1f;  // metres along the table kept visible each side (racket zones + perspective margin)
         const float HalfDepth = 1.25f;    // metres across the table (plus rackets/ball) that must fit vertically
 
         Vector3 _focus = new Vector3(0f, TableGeometry.TopY, 0f);

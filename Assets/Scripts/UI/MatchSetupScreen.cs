@@ -123,7 +123,7 @@ namespace Brooklyneir.UI
 
             Button play = UIKit.Button(Root, "¡A JUGAR!", IconId.Play, ButtonStyle.Primary, StartMatch, 46);
             UIKit.At((RectTransform)play.transform, 1f, 0f, -60f, 30f, 520f, 120f);
-            Text hint = UIKit.Label(Root, p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Arrastra para mover la raqueta. Desliza hacia la red al golpear para pegar más fuerte.",
+            Text hint = UIKit.Label(Root, p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Golpea atravesando la pelota: recto = recto o remate, en diagonal = a ese lado, arriba/abajo = efecto, atrás = globo.",
                 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
             UIKit.At((RectTransform)hint.transform, 0f, 0f, 60f, 40f, 1200f, 100f);
             Validate();

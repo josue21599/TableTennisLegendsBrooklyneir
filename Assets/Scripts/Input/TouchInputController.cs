@@ -180,6 +180,8 @@ namespace Brooklyneir.Controls
             Vector3 a, b;
             if (ScreenToPlane(last, out a) && ScreenToPlane(pos, out b) && _rackets[p] != null)
             {
+                // The racket follows the finger; the direction and speed of that movement at the
+                // moment of contact is the stroke (see ShotModel).
                 Vector3 delta = (b - a) * _sensitivity;
                 _rackets[p].MoveTargetBy(delta);
             }

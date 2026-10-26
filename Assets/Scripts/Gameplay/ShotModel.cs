@@ -73,10 +73,37 @@ namespace Brooklyneir.Gameplay
             if (ctx.SuperSmashArmed) return ShotType.SuperSmash;
             if (ctx.SpecialArmed) return ShotType.Special;
             float height = ctx.ContactPoint.y - TableGeometry.TopY;
-            if (forwardSpeed >= s.smashSwipeThreshold && height >= s.smashMinHeight) return ShotType.Smash;
-            if (forwardSpeed >= s.fastSwipeThreshold) return ShotType.Fast;
-            if (forwardSpeed <= s.defensiveSwipeThreshold) return ShotType.Defensive;
+            // The direction of the swing decides the shot (0 deg = straight at the net,
+            // 90 = sideways, 180 = backwards); its speed decides how strong it is.
+            float speed = Mathf.Sqrt(forwardSpeed * forwardSpeed + lateralSpeed * lateralSpeed);
+            float angle = SwingAngle(forwardSpeed, lateralSpeed);
+            if (angle >= s.defensiveMinAngle && speed >= -s.defensiveSwipeThreshold) return ShotType.Defensive;
+            if (angle > s.spinMinAngle && angle < s.defensiveMinAngle && Mathf.Abs(lateralSpeed) >= s.spinSwipeThreshold) return ShotType.Spin;
+            if (forwardSpeed >= s.smashSwipeThreshold && angle <= s.smashMaxAngle && height >= s.smashMinHeight) return ShotType.Smash;
+            if (forwardSpeed >= s.fastSwipeThreshold && angle <= s.spinMinAngle) return ShotType.Fast;
             return ShotType.Normal;
+        }
+
+        /// <summary>
+        /// Sideways shift (m) of the landing point for a stroke with this sideways speed (m/s,
+        /// world x). Same sign as the stroke, exactly 0 inside the deadzone, monotonic and never
+        /// larger than maxShiftX. Pure and allocation-free; used by the shot model and the AI.
+        /// </summary>
+        public static float LateralShift(float lateralSpeed, ShotTuning s)
+        {
+            float v = Mathf.Abs(lateralSpeed) - s.lateralDeadzone;
+            if (v <= 0f) return 0f;
+            float x = v / Mathf.Max(0.01f, s.lateralRefSpeed);
+            float e = (float)System.Math.Exp(-2.0 * x);
+            float tanh = (1f - e) / (1f + e);
+            return Mathf.Sign(lateralSpeed) * s.maxShiftX * tanh;
+        }
+
+        /// <summary>Angle of the swing in degrees: 0 = towards the net, 90 = sideways, 180 = backwards.</summary>
+        public static float SwingAngle(float forward, float lateral)
+        {
+            if (Mathf.Abs(forward) < 1e-4f && Mathf.Abs(lateral) < 1e-4f) return 0f;
+            return Mathf.Atan2(Mathf.Abs(lateral), forward) * Mathf.Rad2Deg;
         }
 
         public ShotTypeTuning TuningFor(ShotType type)
@@ -104,24 +131,37 @@ namespace Brooklyneir.Gameplay
             RacketStatModel stats = ctx.Stats;
             float fwdSign = TableGeometry.ForwardSign(ctx.Hitter);
 
-            // --- Direction: contact point on the blade + lateral swipe.
-            float aimX;
+            // --- Direction: the sideways speed of the stroke shifts the landing point towards the
+            // side the racket moves to (player's left -> opponent's right: the same half of the
+            // screen). Continuous, proportional and bounded by maxShiftX. Spin shots use the same
+            // target: the solver compensates the curve, so the spin changes the path, not the landing.
+            float shift = LateralShift(lat, s);
+            float baseX = 0f;
             if (type == ShotType.Serve)
-                aimX = Mathf.Clamp(-ctx.ContactPoint.x * 0.4f + lat * s.swipeSteer, -t.maxAimX, t.maxAimX);
-            else
-                aimX = Mathf.Clamp(ctx.ContactOffset * s.contactSteer + lat * s.swipeSteer, -t.maxAimX, t.maxAimX);
+            {
+                baseX = ctx.ContactPoint.x * 0.5f; // straight down the side you serve from
+                shift *= s.lobShiftFactor;
+            }
+            else if (type == ShotType.Defensive)
+            {
+                shift *= s.lobShiftFactor;
+            }
+            float aimX = Mathf.Clamp(baseX + shift + ctx.ContactOffset * s.contactSteer, -t.maxAimX, t.maxAimX);
 
-            // --- Depth: faster swipes go a bit deeper.
+            // --- Depth: a forward stroke sends a normal shot deeper.
             float depth = t.targetDepth;
             if (type == ShotType.Normal)
-                depth = Mathf.Lerp(0.7f, 1.0f, Mathf.InverseLerp(-0.5f, s.fastSwipeThreshold, fwd));
+                depth = s.normalBaseDepth + s.depthGain * Mathf.Clamp01(fwd / s.depthRefSpeed);
 
             // --- Spin.
             float spinMul = stats != null ? stats.SpinMultiplier : 1f;
             float sideSpin = 0f;
-            float excess = Mathf.Abs(lat) - s.spinSwipeThreshold;
-            if (excess > 0f && type != ShotType.Serve)
-                sideSpin = Mathf.Sign(lat) * excess * s.sideSpinPerSwipe * spinMul;
+            if (type == ShotType.Spin)
+            {
+                // Sideways swing: the ball curves towards the side of the swing.
+                float excess = Mathf.Abs(lat) - s.spinSwipeThreshold;
+                sideSpin = Mathf.Sign(lat) * (s.spinLabelThreshold + Mathf.Max(0f, excess) * s.sideSpinPerSwipe) * spinMul;
+            }
             bool consumedCurve = false;
             if (ctx.CurveArmed && type != ShotType.Serve)
             {
@@ -137,7 +177,6 @@ namespace Brooklyneir.Gameplay
             }
             float maxSpin = consumedCurve ? Mathf.Max(s.maxSideSpin, s.curveSideAccel * 1.5f) : s.maxSideSpin;
             sideSpin = Mathf.Clamp(sideSpin, -maxSpin, maxSpin);
-            if (type == ShotType.Normal && Mathf.Abs(sideSpin) >= s.spinLabelThreshold) type = ShotType.Spin;
 
             float verticalAccel = t.verticalAccel;
             if (verticalAccel < 0f) verticalAccel *= spinMul; // topspin scales with the spin stat

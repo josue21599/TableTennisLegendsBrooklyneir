@@ -1,5 +1,6 @@
 using Brooklyneir.Config;
 using Brooklyneir.Core;
+using Brooklyneir.Gameplay;
 using Brooklyneir.Physics;
 using Brooklyneir.PowerUps;
 using UnityEngine;
@@ -94,10 +95,33 @@ namespace Brooklyneir.AI
             else
                 forward = _rng.Range(-0.3f, _shots.fastSwipeThreshold * 0.8f);
 
-            float lateral = _rng.Range(-0.6f, 0.6f);
-            if (_rng.Value() < _t.spinUsage)
+            // Same stroke model as a human: pick where to send the ball sideways, then the stroke
+            // that produces it (found through ShotModel.LateralShift, so the AI and the shot model
+            // can never disagree). Keep smashes straight and normal strokes below the spin threshold.
+            float maxLateral = forward >= _shots.smashSwipeThreshold
+                ? forward * Mathf.Tan(_shots.smashMaxAngle * Mathf.Deg2Rad) * 0.9f
+                : _shots.spinSwipeThreshold * 0.95f;
+            float desiredShift = _rng.Range(-0.85f, 0.85f) * _shots.maxShiftX;
+            float lateral = LateralForShift(desiredShift, maxLateral);
+            if (forward < _shots.fastSwipeThreshold && forward > _shots.defensiveSwipeThreshold && _rng.Value() < _t.spinUsage)
+            {
                 lateral = (_rng.Value() < 0.5f ? -1f : 1f) * (_shots.spinSwipeThreshold + _rng.Range(0.4f, 1.6f));
+                forward = _rng.Range(-0.2f, 0.6f);
+            }
             return new Vector3(lateral, 0f, forward * fwd);
+        }
+
+        /// <summary>Smallest sideways stroke speed whose ShotModel.LateralShift reaches the desired shift.</summary>
+        float LateralForShift(float desiredShift, float maxLateral)
+        {
+            float sign = desiredShift < 0f ? -1f : 1f;
+            float want = Mathf.Abs(desiredShift);
+            const float step = 0.05f;
+            for (float v = 0f; v <= maxLateral; v += step)
+            {
+                if (Mathf.Abs(ShotModel.LateralShift(sign * v, _shots)) >= want) return sign * v;
+            }
+            return sign * maxLateral;
         }
 
         /// <summary>
