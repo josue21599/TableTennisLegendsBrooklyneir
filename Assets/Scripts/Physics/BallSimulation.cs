@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Brooklyneir.Physics
 {
-    public enum BallContactType { Table, Net, NetCord, Floor }
+    public enum BallContactType { Table, Net, NetCord, Floor, Wall }
 
     public struct BallContactEvent
     {
@@ -38,6 +38,8 @@ namespace Brooklyneir.Physics
         public Vector3 SpinAccel;
         /// <summary>When false the ball is held (serve) and Step does nothing.</summary>
         public bool Active;
+        /// <summary>Optional practice wall (null in every mode except the practice wall).</summary>
+        public WallCollision Wall;
 
         readonly PhysicsConfig _cfg;
 
@@ -76,6 +78,7 @@ namespace Brooklyneir.Physics
             Velocity = other.Velocity;
             SpinAccel = other.SpinAccel;
             Active = other.Active;
+            Wall = other.Wall;
         }
 
         /// <summary>
@@ -108,6 +111,7 @@ namespace Brooklyneir.Physics
             {
                 Vector3 a = Acceleration;
                 float r = _cfg.ballRadius;
+                Vector3 before = Position;
 
                 // Resting / rolling on the floor: no more bounces, just roll to a stop.
                 if (Position.y <= r + 1e-4f && Mathf.Abs(Velocity.y) < 0.2f)
@@ -119,6 +123,7 @@ namespace Brooklyneir.Physics
                     Velocity.z *= damp;
                     Position.x += Velocity.x * timeLeft;
                     Position.z += Velocity.z * timeLeft;
+                    if (Wall != null && Wall.ClampInFront(before, ref Position, ref Velocity, r)) added += AddWallEvent(events);
                     timeLeft = 0f;
                     break;
                 }
@@ -163,10 +168,19 @@ namespace Brooklyneir.Physics
                     if (SolveDescendingCrossing(Position.y, Velocity.y, a.y, r, timeLeft, out t)) tFloor = t;
                 }
 
-                float tFirst = Mathf.Min(tTable, Mathf.Min(tNet, tFloor));
+                // Practice wall (analytic: z(t) is linear).
+                float tWall = float.MaxValue;
+                if (Wall != null)
+                {
+                    float t;
+                    if (Wall.TryGetImpactTime(Position, Velocity, a, r, timeLeft, out t)) tWall = t;
+                }
+
+                float tFirst = Mathf.Min(Mathf.Min(tTable, tWall), Mathf.Min(tNet, tFloor));
                 if (tFirst == float.MaxValue)
                 {
                     Advance(timeLeft, a);
+                    if (Wall != null && Wall.ClampInFront(before, ref Position, ref Velocity, r)) added += AddWallEvent(events);
                     timeLeft = 0f;
                     break;
                 }
@@ -177,7 +191,13 @@ namespace Brooklyneir.Physics
                 e.Point = Position;
                 e.VelocityBefore = Velocity;
 
-                if (tFirst == tTable)
+                if (tFirst == tWall && tWall != float.MaxValue)
+                {
+                    e.Type = BallContactType.Wall;
+                    e.Side = 1;
+                    Wall.Resolve(ref Position, ref Velocity, ref SpinAccel, r);
+                }
+                else if (tFirst == tTable)
                 {
                     e.Type = BallContactType.Table;
                     e.Side = TableGeometry.SideOf(Position.z);
@@ -218,10 +238,29 @@ namespace Brooklyneir.Physics
                     SpinAccel = Vector3.zero;
                     if (Mathf.Abs(Velocity.y) < 0.15f) Velocity.y = 0f;
                 }
+                if (Wall != null && e.Type != BallContactType.Wall && Wall.ClampInFront(before, ref Position, ref Velocity, r))
+                {
+                    if (events != null) events.Add(e);
+                    added++;
+                    added += AddWallEvent(events);
+                    continue;
+                }
                 if (events != null) events.Add(e);
                 added++;
             }
             return added;
+        }
+
+        int AddWallEvent(List<BallContactEvent> events)
+        {
+            if (events == null) return 1;
+            BallContactEvent w = new BallContactEvent();
+            w.Type = BallContactType.Wall;
+            w.Point = Position;
+            w.VelocityBefore = Velocity;
+            w.Side = 1;
+            events.Add(w);
+            return 1;
         }
 
         void ResolveTableBounce()

@@ -145,6 +145,18 @@ namespace Brooklyneir.Core
             _hud.SetVisible(true);
         }
 
+        /// <summary>Solo practice wall (Training): no machine, no AI, no score, no end.</summary>
+        public void StartPracticeWall()
+        {
+            State = AppState.Training;
+            Game.UI.Clear();
+            Game.Arena.Show(TableCatalog.Get(Data.selectedTable));
+            Game.Audio.PlayMusic(MusicTrack.Match);
+            Game.Match.StartPracticeWall(Data.racketP1);
+            _hud.Bind();
+            _hud.SetVisible(true);
+        }
+
         public void Pause()
         {
             if (State != AppState.Match && State != AppState.Training) return;
@@ -164,11 +176,17 @@ namespace Brooklyneir.Core
         {
             if ((State == AppState.Match || State == AppState.Training) && !(Game.UI.Top is PauseScreen))
                 Game.UI.Push(new PauseScreen());
+            if (Game.Match.IsPracticeWall) Game.Match.CommitPracticeStats(); // never lose a session if Android kills the app
             Game.Save.SaveIfDirty();
         }
 
         public void RestartMatch()
         {
+            if (Game.Match.IsPracticeWall)
+            {
+                Game.Match.CommitPracticeStats();
+                Game.Save.Save();
+            }
             Game.UI.Clear();
             Game.Audio.PlayMusic(MusicTrack.Match);
             Game.Match.SetPaused(false);
@@ -185,6 +203,12 @@ namespace Brooklyneir.Core
                 // Leaving a tournament match counts as a loss, as announced in the dialog.
                 Tournament t = new Tournament(Data.tournament);
                 if (t.Active) t.RecordPlayerResult(false);
+                Game.Save.Save();
+            }
+            if (Game.Match.IsPracticeWall)
+            {
+                // Only the practice records: coins and achievements are not touched.
+                Game.Match.CommitPracticeStats();
                 Game.Save.Save();
             }
             _tournamentMatch = false;

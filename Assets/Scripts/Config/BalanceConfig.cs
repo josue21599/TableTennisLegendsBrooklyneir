@@ -17,6 +17,7 @@ namespace Brooklyneir.Config
         public AITuning ai = new AITuning();
         public EconomyTuning economy = new EconomyTuning();
         public MatchTuning match = new MatchTuning();
+        public PracticeWallTuning practiceWall = new PracticeWallTuning();
 
         /// <summary>Clamps values that could break the simulation if a JSON file is edited badly.</summary>
         public void Validate()
@@ -28,7 +29,9 @@ namespace Brooklyneir.Config
             if (ai == null) ai = new AITuning();
             if (economy == null) economy = new EconomyTuning();
             if (match == null) match = new MatchTuning();
+            if (practiceWall == null) practiceWall = new PracticeWallTuning();
             physics.Validate();
+            practiceWall.Validate();
             shots.Validate();
             racket.Validate();
             powerUps.Validate();
@@ -123,25 +126,41 @@ namespace Brooklyneir.Config
         public ShotTypeTuning serve = new ShotTypeTuning(3.8f, 0.75f, 0.04f, 0.0f, -0.8f, 0.55f, 0f, 0.22f);
 
         /// <summary>Racket speed toward the net (m/s) needed for each shot class.</summary>
-        public float fastSwipeThreshold = 1.3f;
-        public float smashSwipeThreshold = 2.8f;
-        public float defensiveSwipeThreshold = -0.9f;
+        public float fastSwipeThreshold = 2.4f;
+        public float smashSwipeThreshold = 4.2f;
+        public float defensiveSwipeThreshold = -1.4f;
         /// <summary>Minimum ball height above the table for a smash to be allowed.</summary>
-        public float smashMinHeight = 0.22f;
+        public float smashMinHeight = 0.38f;
         /// <summary>Lateral racket speed (m/s) above which side spin is produced.</summary>
-        public float spinSwipeThreshold = 1.1f;
+        public float spinSwipeThreshold = 2.4f;
         /// <summary>Lateral accel (m/s^2) produced per m/s of lateral swipe beyond the threshold.</summary>
         public float sideSpinPerSwipe = 1.1f;
         public float maxSideSpin = 3.2f;
         /// <summary>Spin magnitude at which a shot is labelled "Efecto".</summary>
         public float spinLabelThreshold = 1.4f;
         /// <summary>How much the contact point on the blade steers the ball (m of landing x per unit offset).</summary>
-        public float contactSteer = 0.42f;
-        /// <summary>How much the lateral swipe steers the ball (m of landing x per m/s).</summary>
-        public float swipeSteer = 0.10f;
+        public float contactSteer = 0.08f;
         public float fireSpeedMultiplier = 1.35f;
         public float curveSideAccel = 3.4f;
         public float assistNoiseMultiplier = 0.55f;
+        /// <summary>Execution error for human players (AI uses its own per-difficulty multiplier).</summary>
+        public float humanNoiseMultiplier = 0.35f;
+        /// <summary>
+        /// Stroke direction -> landing point. The sideways speed of the stroke at contact shifts the
+        /// target towards the side the racket moves to: shift = maxShiftX * tanh((|v| - deadzone) / refSpeed).
+        /// Proportional for small strokes, saturating (never beyond maxShiftX) for big ones.
+        /// </summary>
+        public float maxShiftX = 0.40f;        // m, largest sideways shift of the landing point
+        public float lateralRefSpeed = 2.0f;   // m/s, sideways speed that gives ~76% of maxShiftX
+        public float lateralDeadzone = 0.3f;   // m/s, below this the shot goes straight
+        public float normalBaseDepth = 0.75f;  // depth of a normal shot with no forward stroke (m past the net; half table = 1.37 m)
+        public float depthGain = 0.25f;        // extra depth of a normal shot at depthRefSpeed forward
+        public float depthRefSpeed = 3.0f;     // m/s
+        public float lobShiftFactor = 0.5f;    // lobs and serves shift less
+        /// <summary>Swing direction model (degrees: 0 = towards the net, 90 = sideways, 180 = backwards).</summary>
+        public float spinMinAngle = 55f;       // more sideways than this = spin shot
+        public float defensiveMinAngle = 125f; // more backwards than this = defensive lob
+        public float smashMaxAngle = 15f;      // a smash needs a straight swing
 
         public void Validate()
         {
@@ -160,6 +179,17 @@ namespace Brooklyneir.Config
             fireSpeedMultiplier = PhysicsConfig.Clamp(fireSpeedMultiplier, 1f, 2f);
             curveSideAccel = PhysicsConfig.Clamp(curveSideAccel, 0f, 8f);
             assistNoiseMultiplier = PhysicsConfig.Clamp(assistNoiseMultiplier, 0.1f, 1f);
+            humanNoiseMultiplier = PhysicsConfig.Clamp(humanNoiseMultiplier, 0f, 1.5f);
+            maxShiftX = PhysicsConfig.Clamp(maxShiftX, 0f, 0.7f);
+            lateralRefSpeed = PhysicsConfig.Clamp(lateralRefSpeed, 0.2f, 10f);
+            lateralDeadzone = PhysicsConfig.Clamp(lateralDeadzone, 0f, 2f);
+            normalBaseDepth = PhysicsConfig.Clamp(normalBaseDepth, 0.4f, 1.1f);
+            depthGain = PhysicsConfig.Clamp(depthGain, 0f, 0.5f);
+            depthRefSpeed = PhysicsConfig.Clamp(depthRefSpeed, 0.5f, 10f);
+            lobShiftFactor = PhysicsConfig.Clamp(lobShiftFactor, 0f, 1f);
+            spinMinAngle = PhysicsConfig.Clamp(spinMinAngle, 20f, 89f);
+            defensiveMinAngle = PhysicsConfig.Clamp(defensiveMinAngle, 91f, 170f);
+            smashMaxAngle = PhysicsConfig.Clamp(smashMaxAngle, 5f, spinMinAngle);
         }
     }
 
@@ -169,15 +199,25 @@ namespace Brooklyneir.Config
         /// <summary>Playable zone for player 1 (z &lt; 0). Player 2 mirrors it.</summary>
         public float zoneHalfWidth = 1.15f;
         public float zoneNearZ = 1.42f;   // closest distance from the net (just behind the end line at 1.37)
-        public float zoneFarZ = 2.15f;
-        public float defaultZ = 1.7f;
-        public float baseReach = 0.17f;       // lateral half-width of the hit window (m)
+        public float zoneFarZ = 2.45f;    // deep enough to take a backswing before stroking forward
+        public float defaultZ = 1.85f;
+        public float baseReach = 0.21f;       // lateral half-width of the hit window (m)
         public float reachPerControl = 0.10f; // extra reach at control 10
         public float assistReach = 0.09f;
-        public float baseFollowSpeed = 5.0f;  // m/s at response 0
-        public float followSpeedPerResponse = 3.5f;
+        /// <summary>Human rackets are gently pulled towards the ball's crossing point in the last moments.</summary>
+        public float magnetRange = 0.16f;     // extra distance beyond the reach where the pull acts (m)
+        public float magnetSpeed = 1.0f;      // m/s
+        public float magnetWindow = 0.35f;    // seconds before the crossing
+        /// <summary>
+        /// Human hits keep the ball on the blade this long (a short hit-stop) and read the stroke
+        /// as the strongest movement from just before contact to the end of that time. Players
+        /// usually start their swing at contact, so the direction lives in the follow-through.
+        /// </summary>
+        public float hitDwellSeconds = 0.08f;
+        public float baseFollowSpeed = 7.0f;  // m/s at response 0
+        public float followSpeedPerResponse = 4.0f;
         public float followSharpness = 22f;   // exponential smoothing constant
-        public float minHittableHeight = 0.12f; // above the table top
+        public float minHittableHeight = 0.05f; // above the table top (ball centre; the ball itself is 3.2 cm): low balls after a bounce are hittable
         public float maxHittableHeight = 1.25f;
         public float statPowerSpeedRange = 0.35f;   // +-17.5% speed between power 0..10
         public float statSpinRange = 0.8f;          // spin multiplier 0.6..1.4
@@ -190,6 +230,10 @@ namespace Brooklyneir.Config
             zoneFarZ = PhysicsConfig.Clamp(zoneFarZ, zoneNearZ + 0.2f, 3.5f);
             defaultZ = PhysicsConfig.Clamp(defaultZ, zoneNearZ, zoneFarZ);
             baseReach = PhysicsConfig.Clamp(baseReach, 0.08f, 0.5f);
+            magnetRange = PhysicsConfig.Clamp(magnetRange, 0f, 0.5f);
+            magnetSpeed = PhysicsConfig.Clamp(magnetSpeed, 0f, 5f);
+            magnetWindow = PhysicsConfig.Clamp(magnetWindow, 0f, 1f);
+            hitDwellSeconds = PhysicsConfig.Clamp(hitDwellSeconds, 0f, 0.2f);
             baseFollowSpeed = PhysicsConfig.Clamp(baseFollowSpeed, 1f, 15f);
             followSharpness = PhysicsConfig.Clamp(followSharpness, 2f, 60f);
         }
@@ -299,6 +343,37 @@ namespace Brooklyneir.Config
         {
             if (startingCoins < 0) startingCoins = 0;
             if (maxCoins < 1000) maxCoins = 1000;
+        }
+    }
+
+    /// <summary>Solo practice wall in Training.</summary>
+    [Serializable]
+    public class PracticeWallTuning
+    {
+        public float wallOffset = 0.25f;       // m behind the far end line of the table (wall plane z = 1.37 + offset)
+        public float wallHalfWidth = 1.10f;    // m
+        public float wallHeight = 1.75f;       // m above the floor (top edge)
+        public float wallRestitution = 0.75f;  // fraction of z speed kept
+        public float wallFriction = 0.85f;     // fraction of sideways speed kept
+        public float wallMaxReturnSpeed = 3.4f; // m/s, cap of the z speed coming back: hard strokes still return playable
+        /// <summary>Training-partner return: where the ball bounces back on the player's half.</summary>
+        public float returnBounceDepth = -0.75f; // z of the return bounce (m; the player's half is -1.37..0)
+        public float returnNetClearance = 0.30f; // m above the net tape, minimum
+        public float returnVariation = 0f;       // m, std. deviation of the landing point (bounded to 2x); 0 = exact
+        public float lossPauseSeconds = 0.8f;  // physics frozen while the reason is shown; session time keeps running
+
+        public void Validate()
+        {
+            wallOffset = PhysicsConfig.Clamp(wallOffset, 0.05f, 1.5f);
+            wallHalfWidth = PhysicsConfig.Clamp(wallHalfWidth, 0.8f, 2.5f);
+            wallHeight = PhysicsConfig.Clamp(wallHeight, 0.96f, 3.5f); // table top (0.76) + 0.2 .. 3.5
+            wallRestitution = PhysicsConfig.Clamp(wallRestitution, 0.3f, 1f);
+            wallFriction = PhysicsConfig.Clamp(wallFriction, 0f, 1f);
+            wallMaxReturnSpeed = PhysicsConfig.Clamp(wallMaxReturnSpeed, 1.5f, 10f);
+            returnBounceDepth = PhysicsConfig.Clamp(returnBounceDepth, -1.2f, -0.25f);
+            returnNetClearance = PhysicsConfig.Clamp(returnNetClearance, 0.05f, 1f);
+            returnVariation = PhysicsConfig.Clamp(returnVariation, 0f, 0.25f);
+            lossPauseSeconds = PhysicsConfig.Clamp(lossPauseSeconds, 0f, 3f);
         }
     }
 

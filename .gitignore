@@ -21,3 +21,6 @@
 # Signing keys must never be committed
 *.keystore
 *.jks
+
+# Caché temporal de compilación de Unity
+/.utmp/

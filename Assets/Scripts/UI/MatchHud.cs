@@ -43,6 +43,9 @@ namespace Brooklyneir.UI
         Button _pause;
         RectTransform _training, _trainingIntro;
         Text _trainingTitle, _trainingCounter, _trainingText;
+        RectTransform _practice;
+        Text _practiceStreak, _practiceBest, _practiceTotal, _practiceTime;
+        Button _exit;
         bool _visible;
 
         public void Build(UIManager ui, MatchController match)
@@ -79,6 +82,18 @@ namespace Brooklyneir.UI
             }, 40);
             UIKit.Region((RectTransform)go.transform, 0.3f, 0.06f, 0.7f, 0.24f);
 
+            // Practice wall panel: session statistics only (no rating), plus an always-visible exit.
+            Image pp = UIKit.Panel(_root, new Color(0.03f, 0.04f, 0.08f, 0.72f), 26, false, "Practice");
+            _practice = (RectTransform)pp.transform;
+            UIKit.At(_practice, 0.5f, 1f, 0f, -20f, 900f, 130f);
+            UIKit.Outline(_practice, new Color(1f, 1f, 1f, 0.08f), 26, 3);
+            _practiceStreak = PracticeStat(_practice, 0, "RACHA");
+            _practiceBest = PracticeStat(_practice, 1, "MEJOR");
+            _practiceTotal = PracticeStat(_practice, 2, "DEVOLUCIONES");
+            _practiceTime = PracticeStat(_practice, 3, "TIEMPO");
+            _exit = UIKit.Button(_root, "SALIR", IconId.Home, ButtonStyle.Secondary, () => Game.Flow.QuitToMenu(), 30);
+            UIKit.At((RectTransform)_exit.transform, 1f, 1f, -24f, -24f, 230f, 96f);
+
             match.Message += OnMessage;
             match.Countdown += OnCountdown;
         }
@@ -89,6 +104,16 @@ namespace Brooklyneir.UI
         {
             if (p == 1) { ax = 1f - ax; x = -x; }
             return UIKit.At(rt, ax, ay, x, y, w, h);
+        }
+
+        static Text PracticeStat(RectTransform parent, int index, string label)
+        {
+            float x0 = index * 0.25f, x1 = x0 + 0.25f;
+            Text l = UIKit.Label(parent, label, 22, Theme.TextDim);
+            UIKit.Region((RectTransform)l.transform, x0, 0.62f, x1, 0.95f);
+            Text v = UIKit.Heading(parent, "0", 52, Theme.Text);
+            UIKit.Region((RectTransform)v.transform, x0, 0.04f, x1, 0.66f);
+            return v;
         }
 
         Frame BuildFrame(int p)
@@ -219,8 +244,11 @@ namespace Brooklyneir.UI
                     f.OppName.text = Brooklyneir.Progression.Tournament.Rivals[_match.Config.tournamentRival].Nickname.ToUpperInvariant();
                 f.MyName.text = vsCpu ? "TÚ" : "J" + (p + 1);
             }
-            _training.gameObject.SetActive(training);
-            _trainingIntro.gameObject.SetActive(training);
+            bool practice = _match.IsPracticeWall;
+            _training.gameObject.SetActive(training && !practice);
+            _trainingIntro.gameObject.SetActive(training && !practice);
+            _practice.gameObject.SetActive(practice);
+            _exit.gameObject.SetActive(practice);
             if (training && _match.Drill != null)
             {
                 _trainingTitle.text = _match.Drill.Title.ToUpperInvariant();
@@ -345,6 +373,15 @@ namespace Brooklyneir.UI
                 }
                 RectTransform cr = (RectTransform)f.Count.transform;
                 cr.localScale = Vector3.Lerp(cr.localScale, Vector3.one, 1f - Mathf.Exp(-10f * dt));
+            }
+            if (_match.IsPracticeWall && _match.PracticeStats != null)
+            {
+                PracticeWallStats ps = _match.PracticeStats;
+                _practiceStreak.text = ps.CurrentStreak.ToString();
+                _practiceBest.text = ps.BestStreak.ToString();
+                _practiceTotal.text = ps.TotalReturns.ToString();
+                int secs = (int)ps.SessionSeconds;
+                _practiceTime.text = string.Format("{0}:{1:00}", secs / 60, secs % 60);
             }
             if (_match.IsTraining && _match.Drill != null)
                 _trainingCounter.text = "Bola " + Mathf.Min(_match.TrainingFed, _match.Drill.Balls) + "/" + _match.Drill.Balls + "    Aciertos " + _match.TrainingSuccesses;

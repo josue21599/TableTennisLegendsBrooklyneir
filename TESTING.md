@@ -6,7 +6,7 @@ Este documento separa lo que **se ha ejecutado de verdad** de lo que **queda pen
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 73 de 73 superadas
+### 1.1 Pruebas automáticas: 101 de 101 superadas
 
 Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). Se ejecutaron con Mono sobre el código real del juego, usando una implementación funcional de `Vector3`/`Mathf` y un sustituto mínimo de NUnit con los mismos nombres:
 

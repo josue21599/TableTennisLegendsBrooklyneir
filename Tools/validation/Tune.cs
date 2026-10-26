@@ -11,6 +11,7 @@ using UnityEngine;
 
 public static class Tune
 {
+    static float shiftSum, shiftMax, aimSum, aimMax; static int shiftN;
     public static void Main(string[] args)
     {
         string diff = args.Length > 0 ? args[0] : "hard";
@@ -84,6 +85,8 @@ public static class Tune
                             ctx.Hitter = rec; ctx.ContactPoint = c; ctx.ContactOffset = dx / stats.Reach;
                             ctx.RacketVelocity = brains[rec].ChooseSwing(hgt); ctx.Stats = stats; ctx.SwingMultiplier = 1; ctx.NoiseMultiplier = brains[rec].Tuning.shotNoiseMultiplier;
                             ShotResult res = model.Compute(ctx);
+                            float sh = Math.Abs(ShotModel.LateralShift(ctx.RacketVelocity.x, cfg.shots)); shiftSum += sh; shiftMax = Math.Max(shiftMax, sh); shiftN++;
+                            float ax = Math.Abs(res.IntendedTarget.x); aimSum += ax; aimMax = Math.Max(aimMax, ax);
                             referee.RegisterHit(rec);
                             totalHits++;
                             string k = res.Type.ToString(); types[k] = types.ContainsKey(k) ? types[k] + 1 : 1;
@@ -111,6 +114,7 @@ public static class Tune
             string rk = referee.Reason.ToString();
             reasons[rk] = reasons.ContainsKey(rk) ? reasons[rk] + 1 : 1;
         }
+        Console.WriteLine("Lateral shift from stroke: avg " + (shiftSum / Math.Max(1, shiftN)).ToString("F3") + " m  max " + shiftMax.ToString("F3") + " m   |target x|: avg " + (aimSum / Math.Max(1, shiftN)).ToString("F3") + " m  max " + aimMax.ToString("F3") + " m");
         Console.WriteLine("Difficulty: " + diff + "  rallies: " + rallies + "  timeouts: " + timeouts);
         Console.WriteLine("Avg hits per rally (excl. serve): " + (totalHits / (float)rallies).ToString("F2"));
         Console.WriteLine("Apex avg: " + (apexSum / Math.Max(1, apexN)).ToString("F2") + "  max: " + maxApex.ToString("F2") + "  (table top 0.76)");

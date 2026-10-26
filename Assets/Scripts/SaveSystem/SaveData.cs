@@ -53,10 +53,15 @@ namespace Brooklyneir.SaveSystem
         public int coinsEarned;
         public int trainingSessions;
         public int hardWins;
+        /// <summary>Practice wall: best streak ever and returns over all sessions.</summary>
+        public int practiceBestStreak;
+        public int practiceTotalReturns;
 
         public void Sanitize()
         {
             matchesPlayed = NonNeg(matchesPlayed);
+            practiceBestStreak = NonNeg(practiceBestStreak);
+            practiceTotalReturns = NonNeg(practiceTotalReturns);
             matchesWonVsCpu = NonNeg(matchesWonVsCpu);
             matchesLostVsCpu = NonNeg(matchesLostVsCpu);
             localMatches = NonNeg(localMatches);

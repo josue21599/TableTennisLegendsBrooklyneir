@@ -8,6 +8,10 @@ using System.Collections.Generic;
 
 namespace UnityEngine
 {
+    public enum QualityLevel { Fastest, Fast, Simple, Good, Beautiful, Fantastic }
+}
+namespace UnityEngine
+{
     public static partial class MathfExt { }
 
     public struct Vector4
@@ -493,6 +497,7 @@ namespace UnityEngine
 
     public class Camera : Behaviour
     {
+        public float aspect { get; set; }
         public float fieldOfView { get; set; }
         public float nearClipPlane { get; set; }
         public float farClipPlane { get; set; }

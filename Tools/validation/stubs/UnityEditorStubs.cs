@@ -53,6 +53,7 @@ namespace UnityEditor
 
     public class TextureImporter : AssetImporter
     {
+        public bool alphaIsTransparency { get; set; }
         public TextureImporterCompression textureCompression { get; set; }
         public bool mipmapEnabled { get; set; }
     }
@@ -109,6 +110,18 @@ namespace UnityEditor
     public enum AndroidSdkVersions { AndroidApiLevelAuto = 0, AndroidApiLevel23 = 23, AndroidApiLevel24 = 24, AndroidApiLevel25 = 25, AndroidApiLevel26 = 26 }
     [Flags] public enum AndroidArchitecture { None = 0, ARMv7 = 1, ARM64 = 2, X86_64 = 8 }
     public enum IconKind { Any = -1, Application = 0, Settings = 1, Notification = 2, Spotlight = 3, Store = 4 }
+    public class PlatformIconKind { }
+    public class PlatformIcon
+    {
+        public int maxLayerCount { get { return 1; } }
+        public int minLayerCount { get { return 1; } }
+        public int layerCount { get; set; }
+        public int width { get { return 0; } }
+        public int height { get { return 0; } }
+        public PlatformIconKind kind { get { return null; } }
+        public void SetTexture(Texture2D texture, int layer = 0) { }
+        public void SetTextures(params Texture2D[] textures) { }
+    }
 
     public sealed class PlayerSettings : UnityEngine.Object
     {
@@ -127,6 +140,9 @@ namespace UnityEditor
         public static void SetScriptingBackend(UnityEditor.Build.NamedBuildTarget buildTarget, ScriptingImplementation backend) { }
         public static void SetManagedStrippingLevel(UnityEditor.Build.NamedBuildTarget buildTarget, ManagedStrippingLevel level) { }
         public static void SetIcons(UnityEditor.Build.NamedBuildTarget buildTarget, Texture2D[] icons, IconKind kind) { }
+        public static PlatformIconKind[] GetSupportedIconKinds(UnityEditor.Build.NamedBuildTarget buildTarget) { return null; }
+        public static PlatformIcon[] GetPlatformIcons(UnityEditor.Build.NamedBuildTarget buildTarget, PlatformIconKind kind) { return null; }
+        public static void SetPlatformIcons(UnityEditor.Build.NamedBuildTarget buildTarget, PlatformIconKind kind, PlatformIcon[] icons) { }
 
         public static class Android
         {

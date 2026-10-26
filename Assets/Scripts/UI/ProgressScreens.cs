@@ -244,6 +244,18 @@ namespace Brooklyneir.UI
             RectTransform content;
             ScrollRect sr = UIKit.Scroll(area, out content);
             UIKit.Stretch((RectTransform)sr.transform);
+            {
+                Button wall = UIKit.Button(content, "", null, ButtonStyle.Dark, () => Game.Flow.StartPracticeWall());
+                RectTransform wr = UIKit.Height((RectTransform)wall.transform, 150f);
+                Image wic = UIKit.Icon(wr, IconId.Ball, Theme.Cyan);
+                UIKit.At((RectTransform)wic.transform, 0f, 0.5f, 30f, 0f, 90f, 90f);
+                Text wt = UIKit.Heading(wr, "PARED DE PRÁCTICA", 40, Theme.Text, TextAnchor.LowerLeft);
+                UIKit.Region((RectTransform)wt.transform, 0.1f, 0.5f, 0.7f, 0.92f);
+                Text wd = UIKit.Label(wr, "Saca y devuelve la pelota contra la pared todas las veces que puedas. Sin rival, sin límite: sal cuando quieras.", 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+                UIKit.Region((RectTransform)wd.transform, 0.1f, 0.05f, 0.75f, 0.5f);
+                Text wb = UIKit.Label(wr, "Mejor racha: " + Game.Save.Data.stats.practiceBestStreak, 28, Theme.Gold, TextAnchor.MiddleRight);
+                UIKit.Region((RectTransform)wb.transform, 0.72f, 0.2f, 0.97f, 0.8f);
+            }
             foreach (DrillDefinition d in TrainingDrills.All)
             {
                 DrillDefinition drill = d;

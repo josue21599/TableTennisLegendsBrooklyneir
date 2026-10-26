@@ -46,6 +46,21 @@ namespace Brooklyneir.Gameplay
         public float MatchClock { get; private set; }
         public bool IsDemo { get { return Config != null && Config.mode == GameMode.Demo; } }
         public bool IsTraining { get { return Config != null && Config.mode == GameMode.Training; } }
+        /// <summary>Solo practice against the wall (a Training sub-mode without machine, AI or score).</summary>
+        public bool IsPracticeWall { get { return _practiceRef != null && IsTraining; } }
+        public PracticeWallStats PracticeStats { get; private set; }
+        PracticeWallReferee _practiceRef;
+        bool _hitPending;
+        int _pendingPlayer;
+        Vector3 _pendingContact;
+        float _pendingOffset;
+        float _pendingTimer;
+        Vector3 _pendingSwing;
+        Vector3 _pendingRacketStart;
+        WallCollision _wall;
+        GameObject _wallView;
+        int _lastClampCount;
+        int _committedReturns;
         public DrillDefinition Drill { get { return _drill; } }
         public int TrainingFed { get { return _fed; } }
         public int TrainingSuccesses { get { return _successes; } }
@@ -297,6 +312,10 @@ namespace Brooklyneir.Gameplay
             if (Rackets != null) for (int i = 0; i < 2; i++) { Rackets[i].SetFrozen(false); Rackets[i].gameObject.SetActive(false); }
             if (Countdown != null) Countdown("");
             if (_machine != null) _machine.SetActive(false);
+            if (_wallView != null) _wallView.SetActive(false);
+            _hitPending = false;
+            _sim.Wall = null;
+            _practiceRef = null;
             _ai[0] = _ai[1] = null;
         }
 
@@ -313,7 +332,8 @@ namespace Brooklyneir.Gameplay
         public void Restart()
         {
             if (Config == null) return;
-            if (IsTraining && _drill != null) StartTraining(_drill, Config.racketP1);
+            if (IsPracticeWall) StartPracticeWall(Config.racketP1);
+            else if (IsTraining && _drill != null) StartTraining(_drill, Config.racketP1);
             else StartMatch(Config.Clone());
         }
 
@@ -332,7 +352,8 @@ namespace Brooklyneir.Gameplay
                     _phaseTimer -= dt;
                     if (_phaseTimer <= 0f)
                     {
-                        if (Score.MatchOver) FinishMatch();
+                        if (IsPracticeWall) PrepareServe(0);
+                        else if (Score.MatchOver) FinishMatch();
                         else PrepareServe(Score.Server);
                     }
                     break;
@@ -342,6 +363,8 @@ namespace Brooklyneir.Gameplay
                     break;
             }
 
+            // Session time runs during play and during the loss pause; it stops only while paused.
+            if (IsPracticeWall) PracticeStats.Tick(dt);
             bool live = Phase == MatchPhase.Rally || Phase == MatchPhase.ServeWait;
             if (live && !IsTraining && !IsDemo) UpdateClock(dt);
             if (live) Powers.Update(dt);
@@ -350,12 +373,16 @@ namespace Brooklyneir.Gameplay
             for (int p = 0; p < 2; p++)
             {
                 if (!Rackets[p].gameObject.activeSelf) continue;
-                bool incoming = _ballInPlay && !Referee.RallyOver && Referee.Receiver == p;
+                bool incoming = IsPracticeWall
+                    ? _ballInPlay && p == 0 && _practiceRef.Incoming
+                    : _ballInPlay && !Referee.RallyOver && Referee.Receiver == p;
+                UpdateRacketPrediction(p, incoming);
                 Rackets[p].Tick(dt, Powers.FollowSpeedMultiplier(p), _sim.Position, incoming);
                 Rackets[p].SetFrozen(Powers.Players[p].Frozen);
                 _shields[p].SetActive(Powers.Players[p].ShieldActive);
             }
 
+            UpdatePendingHit(dt);
             if (Phase == MatchPhase.ServeWait) PlaceHeldBall(_server);
             else if (_sim.Active) SimulateBall(dt);
 
@@ -414,6 +441,7 @@ namespace Brooklyneir.Gameplay
         void PrepareServe(int server)
         {
             _server = server;
+            _hitPending = false;
             Phase = MatchPhase.ServeWait;
             _ballInPlay = false;
             Referee.Abort();
@@ -451,7 +479,8 @@ namespace Brooklyneir.Gameplay
             ShotContext ctx = BaseContext(server, HeldBallPosition(server), 0f);
             ctx.IsServe = true;
             ShotResult res = _shots.Compute(ctx);
-            Referee.StartRally(server);
+            if (IsPracticeWall) _practiceRef.OnServe();
+            else Referee.StartRally(server);
             Launch(server, ctx.ContactPoint, res);
             Phase = MatchPhase.Rally;
             Rackets[server].PlaySwing(0.3f);
@@ -471,11 +500,20 @@ namespace Brooklyneir.Gameplay
             for (int i = 0; i < steps; i++)
             {
                 Vector3 before = _sim.Position;
+                _stepFrom = (float)i / steps;
+                _stepTo = (float)(i + 1) / steps;
                 _events.Clear();
                 _sim.Substep(step, _events);
                 for (int e = 0; e < _events.Count; e++) HandleContact(_events[e]);
                 if (!_sim.Active) break;
-                if (_ballInPlay && !Referee.RallyOver)
+                if (IsPracticeWall)
+                {
+                    if (!_ballInPlay) break;
+                    if (CheckRacketHit(before, _sim.Position)) continue;
+                    PracticeOutcome po = _practiceRef.OnBallPosition(_sim.Position.x, _sim.Position.y, _sim.Position.z, _cfg.match.outOfBoundsX, _cfg.match.outOfBoundsZ);
+                    if (po.Lost) { PracticeLost(po.Reason); break; }
+                }
+                else if (_ballInPlay && !Referee.RallyOver)
                 {
                     if (CheckRacketHit(before, _sim.Position)) continue;
                     CheckShieldWall(before, _sim.Position);
@@ -483,11 +521,17 @@ namespace Brooklyneir.Gameplay
                     CheckDeadBall(_sim.Position);
                 }
             }
+            if (IsPracticeWall) ReportWallClamps();
         }
 
         void HandleContact(BallContactEvent e)
         {
             float speed = e.VelocityBefore.magnitude;
+            if (IsPracticeWall)
+            {
+                HandlePracticeContact(e, speed);
+                return;
+            }
             switch (e.Type)
             {
                 case BallContactType.Table:
@@ -520,19 +564,55 @@ namespace Brooklyneir.Gameplay
             }
         }
 
+        /// <summary>
+        /// Predicts where the incoming ball will cross this racket's plane, so the racket model can
+        /// sit exactly at the ball's height at contact (what you see is what gets hit) and human
+        /// rackets can be gently pulled onto the ball in the last moments.
+        /// </summary>
+        void UpdateRacketPrediction(int p, bool incoming)
+        {
+            if (!incoming || !_sim.Active)
+            {
+                Rackets[p].SetPrediction(false, Vector3.zero, 0f, false);
+                return;
+            }
+            int bounces = IsPracticeWall ? _practiceRef.BouncesOnPlayerSide : Referee.BouncesOnReceiverSide;
+            int requiredSide = bounces >= 1 ? -1 : p;
+            Vector3 cross;
+            float t;
+            bool has = ShotSolver.PredictPlaneCrossing(_sim, _scratch, _predictBuffer, Rackets[p].Position.z, requiredSide, 2.5f, out cross, out t);
+            if (has)
+            {
+                int heading = _sim.Velocity.z > 0f ? 1 : 0;
+                t /= Mathf.Max(0.05f, Powers.BallTimeScale(heading));
+            }
+            Rackets[p].SetPrediction(has, cross, t, Human[p]);
+        }
+
+        float _stepFrom, _stepTo;
+
+        /// <summary>
+        /// Swept test: the racket moved this frame (from PreviousPosition to Position), so it is
+        /// interpolated across the ball's substeps. Swinging through the ball always connects,
+        /// whatever the direction of the stroke.
+        /// </summary>
         bool CheckRacketHit(Vector3 before, Vector3 after)
         {
-            int r = Referee.Receiver;
-            if (!Referee.CanHit(r) || !Rackets[r].gameObject.activeSelf) return false;
-            float pz = Rackets[r].Position.z;
-            if ((before.z - pz) * (after.z - pz) > 0f || Mathf.Abs(after.z - before.z) < 1e-6f) return false;
-            float f = (pz - before.z) / (after.z - before.z);
+            int r = IsPracticeWall ? PracticeWallReferee.PlayerSide : Referee.Receiver;
+            bool canHit = IsPracticeWall ? _practiceRef.CanHit : Referee.CanHit(r);
+            if (!canHit || !Rackets[r].gameObject.activeSelf) return false;
+            Vector3 r0 = Vector3.Lerp(Rackets[r].PreviousPosition, Rackets[r].Position, _stepFrom);
+            Vector3 r1 = Vector3.Lerp(Rackets[r].PreviousPosition, Rackets[r].Position, _stepTo);
+            float d0 = before.z - r0.z, d1 = after.z - r1.z;
+            if (d0 * d1 > 0f || Mathf.Abs(d1 - d0) < 1e-6f) return false;
+            float f = d0 / (d0 - d1);
             Vector3 c = Vector3.LerpUnclamped(before, after, f);
-            float dx = c.x - Rackets[r].Position.x;
+            float racketX = Mathf.Lerp(r0.x, r1.x, f);
+            float dx = c.x - racketX;
             float height = c.y - TableGeometry.TopY;
             float reach = Rackets[r].Reach;
             if (Mathf.Abs(dx) > reach || height < _cfg.racket.minHittableHeight || height > _cfg.racket.maxHittableHeight) return false;
-            ExecuteHit(r, c, Mathf.Clamp(dx / reach, -1f, 1f));
+            BeginHit(r, c, Mathf.Clamp(dx / reach, -1f, 1f));
             return true;
         }
 
@@ -551,16 +631,59 @@ namespace Brooklyneir.Gameplay
             ctx.CurveArmed = s.CurveArmed;
             ctx.FireActive = s.FireActive && !s.FireBurning;
             ctx.SwingMultiplier = Powers.SwingMultiplier(p);
-            ctx.NoiseMultiplier = _ai[p] != null ? _ai[p].NoiseMultiplier : 1f;
+            ctx.NoiseMultiplier = _ai[p] != null ? _ai[p].NoiseMultiplier : _cfg.shots.humanNoiseMultiplier;
             return ctx;
         }
 
-        void ExecuteHit(int p, Vector3 contact, float offset)
+        /// <summary>
+        /// Contact. AI hits resolve at once. Human hits hold the ball on the blade for
+        /// hitDwellSeconds and use the strongest stroke measured from just before contact to the
+        /// end of the dwell, so a swing that starts at the moment of contact still counts.
+        /// </summary>
+        void BeginHit(int p, Vector3 contact, float offset)
+        {
+            float dwell = _cfg.racket.hitDwellSeconds;
+            if (_ai[p] != null || !Human[p] || dwell <= 0f)
+            {
+                ExecuteHit(p, contact, offset, false, Vector3.zero);
+                return;
+            }
+            _hitPending = true;
+            _pendingPlayer = p;
+            _pendingContact = contact;
+            _pendingOffset = offset;
+            _pendingTimer = dwell;
+            _pendingSwing = Rackets[p].SwingVelocity;
+            _pendingRacketStart = Rackets[p].Position;
+            _sim.Hold(contact);
+            _marker.Hide();
+        }
+
+        void UpdatePendingHit(float dt)
+        {
+            if (!_hitPending) return;
+            Vector3 sv = Rackets[_pendingPlayer].SwingVelocity;
+            if (sv.sqrMagnitude > _pendingSwing.sqrMagnitude) _pendingSwing = sv;
+            // The ball rides on the blade a few centimetres during the hit-stop (never far from
+            // the contact point), so it does not float while the racket follows through.
+            Vector3 carry = Rackets[_pendingPlayer].Position - _pendingRacketStart;
+            carry.y = 0f;
+            carry = Vector3.ClampMagnitude(carry, 0.12f);
+            _sim.Hold(_pendingContact + carry);
+            _pendingTimer -= dt;
+            if (_pendingTimer > 0f) return;
+            _hitPending = false;
+            ExecuteHit(_pendingPlayer, _sim.Position, _pendingOffset, true, _pendingSwing);
+        }
+
+        void ExecuteHit(int p, Vector3 contact, float offset, bool useSwing, Vector3 swing)
         {
             if (_ai[p] != null) _ai[p].DecideSwing(contact.y - TableGeometry.TopY);
             ShotContext ctx = BaseContext(p, contact, offset);
+            if (useSwing) ctx.RacketVelocity = swing;
             ShotResult res = _shots.Compute(ctx);
-            Referee.RegisterHit(p);
+            if (IsPracticeWall) _practiceRef.OnRacketHit();
+            else Referee.RegisterHit(p);
             Powers.OnShot(p, res.ConsumedCurve, res.ConsumedSuperSmash, res.ConsumedSpecial);
             Launch(p, contact, res);
             RallyHits++;
@@ -656,6 +779,134 @@ namespace Brooklyneir.Gameplay
                 Referee.OnBallDead(Mathf.Abs(bp.x) > TableGeometry.HalfWidth + 0.02f);
                 if (Referee.RallyOver) EndRally();
             }
+        }
+
+        // =================================================================== practice wall
+
+        /// <summary>Starts the solo practice wall: serve with a tap, no machine, AI, score or end.</summary>
+        public void StartPracticeWall(string racketId)
+        {
+            MatchConfig c = new MatchConfig();
+            c.mode = GameMode.Training;
+            c.player2IsAI = true;
+            c.powerUpsEnabled = false;
+            c.racketP1 = racketId;
+            c.racketP2 = racketId;
+            c.tableId = Game.Arena != null && Game.Arena.Current != null ? Game.Arena.Current.Id : "classic";
+            _drill = null;
+            StartMatch(c); // Abort() inside clears any previous practice state
+            _practiceRef = new PracticeWallReferee();
+            PracticeStats = new PracticeWallStats();
+            _committedReturns = 0;
+            EnsureWall();
+            _sim.Wall = _wall;
+            _lastClampCount = _wall.ClampActivations;
+            TrainingHint = "";
+            _camera.SetMode(CameraMode.Match);
+            PrepareServe(0);
+        }
+
+        void EnsureWall()
+        {
+            PracticeWallTuning w = _cfg.practiceWall;
+            float planeZ = TableGeometry.HalfLength + w.wallOffset;
+            if (_wall == null)
+                _wall = new WallCollision(planeZ, w.wallHalfWidth, w.wallHeight, w.wallRestitution, w.wallFriction, _cfg.physics.spinDecayOnBounce);
+            _wall.PlaneZ = planeZ;
+            _wall.HalfWidth = w.wallHalfWidth;
+            _wall.TopY = w.wallHeight;
+            _wall.Restitution = w.wallRestitution;
+            _wall.Friction = w.wallFriction;
+            _wall.MaxReturnSpeed = w.wallMaxReturnSpeed;
+            _wall.Physics = _cfg.physics;
+            _wall.ReturnBounceDepth = w.returnBounceDepth;
+            _wall.ReturnNetClearance = w.returnNetClearance;
+            _wall.ReturnVariation = w.returnVariation;
+            _wall.Seed = Mathf.FloorToInt(_rng.Value() * 1000000f);
+            _wall.SpinDecay = _cfg.physics.spinDecayOnBounce;
+
+            if (_wallView == null)
+            {
+                const float thickness = 0.08f;
+                _wallView = new GameObject("PracticeWall");
+                _wallView.transform.SetParent(transform, false);
+                Material panel = MaterialLibrary.Surface(SurfaceKind.Painted, new Color(0.16f, 0.36f, 0.62f));
+                Material trim = MaterialLibrary.Surface(SurfaceKind.Painted, new Color(0.95f, 0.95f, 0.95f));
+                GameObject board = new GameObject("Board");
+                board.transform.SetParent(_wallView.transform, false);
+                board.transform.localPosition = new Vector3(0f, w.wallHeight * 0.5f, thickness * 0.5f);
+                board.AddComponent<MeshFilter>().sharedMesh = MeshFactory.RoundedBox(new Vector3(w.wallHalfWidth * 2f, w.wallHeight, thickness), 0.025f, 2);
+                board.AddComponent<MeshRenderer>().sharedMaterial = panel;
+                GameObject line = new GameObject("TableLine");
+                line.transform.SetParent(_wallView.transform, false);
+                line.transform.localPosition = new Vector3(0f, TableGeometry.TopY, -0.002f);
+                line.AddComponent<MeshFilter>().sharedMesh = MeshFactory.RoundedBox(new Vector3(w.wallHalfWidth * 2f, 0.025f, 0.006f), 0.002f, 1);
+                line.AddComponent<MeshRenderer>().sharedMaterial = trim;
+            }
+            _wallView.transform.localPosition = new Vector3(0f, 0f, planeZ);
+            _wallView.SetActive(true);
+        }
+
+        void HandlePracticeContact(BallContactEvent e, float speed)
+        {
+            switch (e.Type)
+            {
+                case BallContactType.Table:
+                    PlaySfx(Brooklyneir.Audio.Sfx.Bounce, Mathf.Clamp01(0.4f + speed * 0.1f), Mathf.Lerp(0.9f, 1.15f, Mathf.Clamp01(speed / 8f)));
+                    _vfx.Bounce(e.Point, Color.white);
+                    _marker.Hide();
+                    break;
+                case BallContactType.Wall:
+                    PlaySfx(Brooklyneir.Audio.Sfx.Bounce, Mathf.Clamp01(0.5f + speed * 0.08f), 0.75f);
+                    _vfx.Bounce(e.Point, new Color(0.6f, 0.8f, 1f));
+                    break;
+                case BallContactType.Net:
+                case BallContactType.NetCord:
+                    PlaySfx(Brooklyneir.Audio.Sfx.Net, Mathf.Clamp01(0.5f + speed * 0.08f));
+                    break;
+                case BallContactType.Floor:
+                    if (speed > 1f) PlaySfx(Brooklyneir.Audio.Sfx.Bounce, 0.35f, 0.7f);
+                    break;
+            }
+            if (!_ballInPlay) return;
+            PracticeOutcome o = _practiceRef.OnContact(e.Type, e.Side);
+            if (o.Return) PracticeStats.RegisterReturn();
+            if (o.Lost) PracticeLost(o.Reason);
+        }
+
+        /// <summary>
+        /// Ball lost: the streak resets, the ball freezes where it is (physics stops) and the reason
+        /// is shown for lossPauseSeconds; then the player serves again with a tap. Session time
+        /// keeps running during this pause.
+        /// </summary>
+        void PracticeLost(PracticeLoss reason)
+        {
+            PracticeStats.RegisterLoss();
+            _ballInPlay = false;
+            _sim.Hold(_sim.Position);
+            _marker.Hide();
+            Say(0, PracticeWallReferee.Describe(reason), new Color(1f, 1f, 1f, 0.9f));
+            Phase = MatchPhase.PointOver;
+            _phaseTimer = _cfg.practiceWall.lossPauseSeconds;
+        }
+
+        void ReportWallClamps()
+        {
+            if (_wall == null || _wall.ClampActivations == _lastClampCount) return;
+            _lastClampCount = _wall.ClampActivations;
+            Debug.LogWarning("[TTLB] WallCollision.ClampInFront tuvo que actuar en " + _wall.LastClampPosition + ". No debería ocurrir: revisa TryGetImpactTime.");
+        }
+
+        /// <summary>Adds this session's best streak and new returns to the local profile (idempotent).</summary>
+        public void CommitPracticeStats()
+        {
+            if (PracticeStats == null || Game.Save == null) return;
+            var stats = Game.Save.Data.stats;
+            if (PracticeStats.BestStreak > stats.practiceBestStreak) stats.practiceBestStreak = PracticeStats.BestStreak;
+            int fresh = PracticeStats.TotalReturns - _committedReturns;
+            if (fresh > 0) stats.practiceTotalReturns += fresh;
+            _committedReturns = PracticeStats.TotalReturns;
+            Game.Save.MarkDirty();
         }
 
         // =================================================================== points

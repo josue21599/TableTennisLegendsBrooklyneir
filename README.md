@@ -8,7 +8,7 @@
 ![C#](https://img.shields.io/badge/C%23-.NET%20Standard%202.1-512BD4?logo=csharp&logoColor=white)
 ![URP](https://img.shields.io/badge/Render-URP%2017-2C7BE5)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-73%20pasan-brightgreen)
+![Tests](https://img.shields.io/badge/tests-101%20pasan-brightgreen)
 
 </div>
 
@@ -55,7 +55,7 @@ El objetivo técnico era construir un juego completo **sin depender de assets ex
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~12.400 líneas en 68 archivos + 73 pruebas automáticas |
+| **Código** | ~12.400 líneas en 68 archivos + 101 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -67,6 +67,7 @@ El objetivo técnico era construir un juego completo **sin depender de assets ex
 - **Contra la CPU** con tres dificultades (fácil, normal y difícil).
 - **Torneo** de 8 jugadores con cuadro real: cuartos, semifinales y final.
 - **Entrenamiento** con máquina lanzabolas: 5 ejercicios con puntuación por estrellas.
+- **Pared de práctica**: saca y devuelve contra una pared sin límite, con racha y estadísticas de la sesión.
 - **Partida personalizada**: puntos, sets, límite de tiempo, poderes y rival.
 
 **⚡ Jugabilidad arcade**
@@ -101,6 +102,8 @@ No usa el motor de física de Unity: una pelota de 3 cm a más de 10 m/s contra 
 - El gesto del jugador decide el tipo de golpe, la dirección y el efecto.
 - Un **resolvedor balístico inverso** calcula la velocidad exacta para que la pelota llegue al punto elegido salvando la red.
 - El error es **ruido gaussiano acotado** según el riesgo del golpe y las estadísticas de la raqueta: hay margen de fallo, pero no es aleatorio.
+- **El golpe es el propio movimiento de la pala.** La dirección con la que atraviesas la pelota decide el tipo de golpe y hacia dónde va: recto, en diagonal, de lado (efecto) o hacia atrás (globo). La velocidad decide la fuerza.
+- **Detección de impacto por barrido:** la posición de la pala se interpola entre fotogramas durante los subpasos de la pelota, así que un golpe rápido que atraviesa la pelota siempre conecta.
 
 ### Multitáctil local
 `TouchZoneRouter` asigna cada dedo a un jugador por su identificador, según la mitad de la pantalla donde empieza el toque:
@@ -172,7 +175,7 @@ La lógica de juego (física, reglas, marcador, poderes, economía, torneo e IA)
 ### Pasos
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/jose21599/TableTennisLegendsBrooklyneir.git
+   git clone https://github.com/josue21599/TableTennisLegendsBrooklyneir.git
    ```
 2. En Unity Hub: **Add → Add project from disk** → selecciona la carpeta.
 3. Al abrirlo, ejecuta **Brooklyneir → Configurar proyecto** (la primera vez se lanza solo).
@@ -191,25 +194,27 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 |---|---|---|
 | Mover la raqueta | Arrastrar el dedo en tu mitad de la pantalla | Ratón (J1) · Flechas / WASD |
 | Sacar | Tocar la pantalla | Espacio (J1) · Intro (J2) |
-| Golpe rápido / remate | Deslizar hacia la red al golpear | Arrastrar el ratón rápido |
-| Golpe defensivo | Deslizar hacia atrás al golpear | — |
-| Efecto | Deslizar de lado con fuerza al golpear | — |
+| Golpe recto / remate | Atravesar la pelota moviendo la pala recto hacia la red (remate si es rápido y la bola viene alta) | Arrastrar el ratón |
+| Dirigir el golpe | Golpear en diagonal: la pelota va hacia ese lado | Arrastrar el ratón |
+| Efecto | Golpear moviendo la pala hacia arriba o abajo de la pantalla | Arrastrar el ratón |
+| Globo defensivo | Golpear moviendo la pala hacia atrás | Arrastrar el ratón |
 | Poder / especial | Botones de tu borde de la pantalla | Clic en los botones |
 
 ---
 
 ## Pruebas
 
-**73 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
+**101 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
 
 | Área | Qué se comprueba |
 |---|---|
 | Física | Botes, red, cinta y que la pelota no atraviese la mesa ni a 25 m/s |
-| Golpes | Precisión del resolvedor, clasificación de gestos, efecto lateral |
+| Golpes | Precisión del resolvedor, clasificación por dirección del golpe, desvío lateral acotado y proporcional, determinismo |
 | Reglas | Doble bote, bola fuera, red, empates, rotación de saque, sets, punto de oro |
 | Poderes | Duraciones, enfriamientos, interacciones entre poderes, limpieza al final del punto |
 | Progresión | Economía, guardado corrupto, torneo reproducible con semilla, logros |
 | Entrada e IA | Dos dedos simultáneos, prioridad de la interfaz, tiempos de reacción de la IA |
+| Pared de práctica | Rebote con la velocidad esperada, sin atravesar la pared a 10–40 m/s, reglas de pérdida, racha, sesión sin fin, determinismo |
 | Integración | 60 peloteos completos CPU contra CPU con todos los sistemas reales |
 
 Para ejecutarlas: **Window → General → Test Runner → EditMode → Run All**.
@@ -252,7 +257,7 @@ Assets/
 - [x] CPU con tres dificultades, torneo y entrenamiento
 - [x] 7 poderes, 8 raquetas y 6 escenarios
 - [x] Progresión y guardado local
-- [x] 73 pruebas automáticas
+- [x] 101 pruebas automáticas
 - [ ] Completar las pruebas en varios dispositivos Android
 - [ ] Tipografía propia para la interfaz
 - [ ] Animaciones más elaboradas para manos y público
