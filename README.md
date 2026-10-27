@@ -17,7 +17,7 @@
 </p>
 
 <p align="center">
-  <img src="Docs/screenshots/partido.png" width="49%" alt="Partido a dos jugadores">
+  <img src="Docs/screenshots/partido.png" width="49%" alt="Partido contra la CPU">
   <img src="Docs/screenshots/poder_fuego.png" width="49%" alt="Poder de pelota de fuego">
 </p>
 <p align="center">
@@ -40,6 +40,7 @@
 - [Pruebas](#pruebas)
 - [Estructura del proyecto](#estructura-del-proyecto)
 - [Estado y próximos pasos](#estado-y-próximos-pasos)
+- [Créditos](#créditos)
 - [Autor](#autor)
 
 ---
@@ -55,7 +56,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~12.400 líneas en 68 archivos + 109 pruebas automáticas |
+| **Código** | ~13.900 líneas en 68 archivos + 109 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -120,6 +121,13 @@ No usa el motor de física de Unity: una pelota de 3 cm a más de 10 m/s contra 
 - La escena está vacía: `GameBootstrap` construye todos los servicios por código.
 - No hay prefabs ni referencias de escena que se puedan romper.
 - El equilibrado del juego vive en un **JSON editable** (`balance.json`), que se valida al cargar.
+
+### Interfaz pixel art con TextMeshPro
+- Toda la interfaz usa la tipografía **Jersey 10** a través de un único proveedor (`UiFont`): se carga una sola vez y, si faltara el archivo, el juego sigue con una fuente de respaldo (la de TextMeshPro o una del sistema).
+- Los textos solo usan **cuatro tamaños fijos (32, 64, 96 y 128)**, para que los píxeles de la fuente se vean nítidos. La ruta de la fuente, los tamaños y la sombra viven en `ui.json`.
+- Los títulos llevan una **sombra pixelada de 2 px**, hecha con una copia del texto, porque las fuentes raster no admiten los contornos de TextMeshPro.
+- El **logotipo se coloca con las métricas reales de la fuente** (altura de mayúscula), con la separación entre líneas configurable en `ui.json`: se ve compacto en la pantalla de título y en la esquina del menú.
+- El HUD del partido actualiza marcador, reloj y estadísticas **sin crear memoria nueva en cada fotograma**.
 
 ### Herramientas de editor
 - `ProjectSetup` configura el proyecto automáticamente: pipeline URP, materiales, escena, ajustes de Android e iconos adaptativos.
@@ -214,6 +222,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 | Poderes | Duraciones, enfriamientos, interacciones entre poderes, limpieza al final del punto |
 | Progresión | Economía, guardado corrupto, torneo reproducible con semilla, logros |
 | Entrada e IA | Dos dedos simultáneos, prioridad de la interfaz, tiempos de reacción de la IA |
+| Interfaz | Los tamaños de texto caen siempre en los cuatro fijos, configuración inválida reparada, logotipo apilado sin solapes y centrado, fuente única con respaldo y todos los caracteres del juego (tildes, ñ, ¡ ¿) presentes en la fuente |
 | Pared de práctica | Rebote con la velocidad esperada, sin atravesar la pared a 10–40 m/s, reglas de pérdida, racha, sesión sin fin, determinismo |
 | Integración | 60 peloteos completos CPU contra CPU con todos los sistemas reales |
 
@@ -258,9 +267,9 @@ Assets/
 - [x] CPU con tres dificultades, torneo y entrenamiento
 - [x] 7 poderes, 8 raquetas y 6 escenarios
 - [x] Progresión y guardado local
+- [x] Interfaz pixel art con la tipografía Jersey 10
 - [x] 109 pruebas automáticas
 - [ ] Completar las pruebas en varios dispositivos Android
-- [ ] Tipografía propia para la interfaz
 - [ ] Animaciones más elaboradas para manos y público
 - [ ] Publicación en Google Play
 
