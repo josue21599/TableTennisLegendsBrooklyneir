@@ -19,7 +19,7 @@ namespace Brooklyneir.UI
         {
             _logo = UIKit.Node(Root, "Logo");
             UIKit.At(_logo, 0.5f, 0.5f, 0f, 120f, 1500f, 520f);
-            BuildLogo(_logo, 1f);
+            BuildLogo(_logo, true);
             _tap = UIKit.Heading(Root, "TOCA PARA EMPEZAR", 48, Color.white);
             UIKit.At((RectTransform)_tap.transform, 0.5f, 0f, 0f, 150f, 1200f, 90f);
             TMP_Text v = UIKit.Label(Root, "v" + Application.version + "  ·  2 jugadores en un móvil  ·  sin conexión", 26, Theme.TextDim);
@@ -32,18 +32,72 @@ namespace Brooklyneir.UI
             if (o != null) Object.Destroy(o.gameObject);
         }
 
-        public static void BuildLogo(RectTransform parent, float scale)
+        /// <summary>
+        /// Three-line logo stacked from the font's real cap height (LogoLayout), not fixed
+        /// fractions: the gap between lines and the plaque padding come from ui.json.
+        /// Always the full sizes (96/128/64). centered = middle of the parent (title screen);
+        /// otherwise the block hugs the parent's top-left corner (main menu).
+        /// </summary>
+        public static void BuildLogo(RectTransform parent, bool centered)
         {
-            TMP_Text top = UIKit.Heading(parent, "TABLE TENNIS", Mathf.RoundToInt(92 * scale), Theme.Text);
-            UIKit.Region((RectTransform)top.transform, 0f, 0.62f, 1f, 0.98f);
-            TMP_Text legends = UIKit.Heading(parent, "LEGENDS", Mathf.RoundToInt(170 * scale), Theme.Orange);
-            UIKit.Region((RectTransform)legends.transform, 0f, 0.22f, 1f, 0.7f);
+            UiConfig cfg = UiFont.Config;
+            const TextTier topTier = TextTier.Display, legendsTier = TextTier.Huge, plaqueTier = TextTier.Title;
+            int topSize = cfg.SizeOf(topTier), legendsSize = cfg.SizeOf(legendsTier), plaqueSize = cfg.SizeOf(plaqueTier);
+
+            float capRatio = LogoLayout.DefaultCapRatio;
+            TMP_FontAsset font = UiFont.Font;
+            if (font != null) capRatio = LogoLayout.CapRatio(font.faceInfo.capLine, font.faceInfo.pointSize);
+
+            float parentW = parent.rect.width > 1f ? parent.rect.width : parent.sizeDelta.x;
+            float parentH = parent.rect.height > 1f ? parent.rect.height : parent.sizeDelta.y;
+            // parentH 0 = no vertical centring: the block starts at the top edge.
+            LogoLayout.Result L = LogoLayout.Compute(capRatio, topSize, legendsSize, plaqueSize,
+                cfg.logoLineGap, cfg.logoPlaquePadding, centered ? parentH : 0f);
+
+            TMP_Text top = UIKit.Heading(parent, "TABLE TENNIS", topTier, Theme.Text);
+            TMP_Text legends = UIKit.Heading(parent, "LEGENDS", legendsTier, Theme.Orange);
             Image strip = UIKit.Panel(parent, Theme.Cyan, 12, false, "Strip");
-            UIKit.Region((RectTransform)strip.transform, 0.2f, 0.06f, 0.8f, 0.2f);
-            TMP_Text brook = UIKit.Heading(strip.transform, "BROOKLYNEIR", Mathf.RoundToInt(56 * scale), new Color(0.05f, 0.07f, 0.12f));
+            TMP_Text brook = UIKit.Heading(strip.transform, "BROOKLYNEIR", plaqueTier, new Color(0.05f, 0.07f, 0.12f));
+            UIKit.SingleLine(brook);
+            brook.overflowMode = TextOverflowModes.Overflow;
+            brook.alignment = TextAlignmentOptions.Midline;
             UIKit.Stretch((RectTransform)brook.transform);
+
+            float padX = L.PlaqueCap * (0.6f + cfg.logoPlaquePadding * 2f);
+            float brookW = brook.preferredWidth;
+            float plaqueW = Mathf.Min(brookW > 1f ? brookW + 2f * padX : parentW * 0.6f, parentW);
+            float topW = top.preferredWidth, legendsW = legends.preferredWidth;
+
+            // Horizontal centre of the text column, measured from the parent's left edge.
+            float columnW = Mathf.Max(plaqueW, Mathf.Max(topW, legendsW));
+            float cx = centered || topW < 1f || legendsW < 1f ? parentW * 0.5f : columnW * 0.5f;
+
+            PlaceAt((RectTransform)top.transform, cx, L.TopCenter, parentW, topSize * 1.3f);
+            LineStyle(top);
+            PlaceAt((RectTransform)legends.transform, cx, L.LegendsCenter, parentW, legendsSize * 1.3f);
+            LineStyle(legends);
+            PlaceAt((RectTransform)strip.transform, cx, L.PlaqueCenter, plaqueW, L.PlaqueHeight);
+
+            float ballSize = L.LegendsCap * 0.85f;
+            float ballDx = legendsW > 1f ? legendsW * 0.5f + ballSize * 0.75f : 560f;
             Image ball = UIKit.Icon(parent, IconId.Ball, Theme.Gold);
-            UIKit.At((RectTransform)ball.transform, 0.5f, 0.5f, 560f * scale, 70f * scale, 110f * scale, 110f * scale);
+            PlaceAt((RectTransform)ball.transform, cx + ballDx, L.LegendsCenter - L.LegendsCap * 0.35f, ballSize, ballSize);
+        }
+
+        static void LineStyle(TMP_Text t)
+        {
+            UIKit.SingleLine(t);
+            t.overflowMode = TextOverflowModes.Overflow;
+            t.alignment = TextAlignmentOptions.Midline;
+        }
+
+        /// <summary>Box of size w x h centred at (x from the left edge, y from the top edge) of its parent.</summary>
+        static void PlaceAt(RectTransform rt, float x, float yFromTop, float w, float h)
+        {
+            rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
+            rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.anchoredPosition = new Vector2(x, -yFromTop);
         }
 
         public override void Tick(float dt)
@@ -64,8 +118,8 @@ namespace Brooklyneir.UI
         protected override void OnBuild()
         {
             RectTransform logo = UIKit.Node(Root, "Logo");
-            UIKit.At(logo, 0f, 1f, 50f, -20f, 760f, 270f);
-            TitleScreen.BuildLogo(logo, 0.5f);
+            UIKit.At(logo, 0f, 1f, 40f, -30f, 900f, 290f); // top-left corner, same margin as the coin chip
+            TitleScreen.BuildLogo(logo, false);
 
             TMP_Text c = UIKit.CoinChip(Root, Game.Economy.Coins);
             UIKit.At((RectTransform)c.transform.parent, 1f, 1f, -40f, -40f, 300f, 90f);

@@ -26,6 +26,10 @@ namespace Brooklyneir.UI
         public int hugeFromHint = 125;
         public float shadowOffsetPx = 2f;
         public float shadowAlpha = 0.6f;
+        /// <summary>Logo: gap between lines as a fraction of the cap height of "LEGENDS".</summary>
+        public float logoLineGap = 0.12f;
+        /// <summary>Logo: padding of the blue plaque above/below its text, as a fraction of that text's cap height.</summary>
+        public float logoPlaquePadding = 0.3f;
 
         /// <summary>Repairs bad values from an edited file. Never throws.</summary>
         public void Validate()
@@ -41,6 +45,8 @@ namespace Brooklyneir.UI
             hugeFromHint = Clamp(hugeFromHint, displayFromHint + 1, 1000);
             if (shadowOffsetPx < 0f || shadowOffsetPx > 16f) shadowOffsetPx = 2f;
             if (shadowAlpha < 0f || shadowAlpha > 1f) shadowAlpha = 0.6f;
+            if (logoLineGap < 0f || logoLineGap > 1f) logoLineGap = 0.12f;
+            if (logoPlaquePadding < 0f || logoPlaquePadding > 1f) logoPlaquePadding = 0.3f;
         }
 
         public TextTier TierForHint(int hint)

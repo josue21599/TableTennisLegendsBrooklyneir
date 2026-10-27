@@ -8,7 +8,7 @@
 ![C#](https://img.shields.io/badge/C%23-.NET%20Standard%202.1-512BD4?logo=csharp&logoColor=white)
 ![URP](https://img.shields.io/badge/Render-URP%2017-2C7BE5)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-101%20pasan-brightgreen)
+![Tests](https://img.shields.io/badge/tests-109%20pasan-brightgreen)
 
 </div>
 
@@ -55,7 +55,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~12.400 líneas en 68 archivos + 101 pruebas automáticas |
+| **Código** | ~12.400 líneas en 68 archivos + 109 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -204,7 +204,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 
 ## Pruebas
 
-**101 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
+**109 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
 
 | Área | Qué se comprueba |
 |---|---|
@@ -258,7 +258,7 @@ Assets/
 - [x] CPU con tres dificultades, torneo y entrenamiento
 - [x] 7 poderes, 8 raquetas y 6 escenarios
 - [x] Progresión y guardado local
-- [x] 101 pruebas automáticas
+- [x] 109 pruebas automáticas
 - [ ] Completar las pruebas en varios dispositivos Android
 - [ ] Tipografía propia para la interfaz
 - [ ] Animaciones más elaboradas para manos y público

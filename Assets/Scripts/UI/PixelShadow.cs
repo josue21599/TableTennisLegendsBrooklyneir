@@ -101,6 +101,10 @@ namespace Brooklyneir.UI
             if (_dst.anchoredPosition != pos) _dst.anchoredPosition = pos;
             if (_dst.localScale != _src.localScale) _dst.localScale = _src.localScale;
             if (_dst.localRotation != _src.localRotation) _dst.localRotation = _src.localRotation;
+            if (_shadow.alignment != _source.alignment) _shadow.alignment = _source.alignment;
+            if (_shadow.fontSize != _source.fontSize) _shadow.fontSize = _source.fontSize;
+            if (_shadow.textWrappingMode != _source.textWrappingMode) _shadow.textWrappingMode = _source.textWrappingMode;
+            if (_shadow.overflowMode != _source.overflowMode) _shadow.overflowMode = _source.overflowMode;
         }
 
         void CopyAlpha()

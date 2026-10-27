@@ -5,6 +5,18 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace UnityEngine.TextCore
+{
+    public struct FaceInfo
+    {
+        public float pointSize { get; set; }
+        public float capLine { get; set; }
+        public float ascentLine { get; set; }
+        public float descentLine { get; set; }
+        public float lineHeight { get; set; }
+    }
+}
+
 namespace TMPro
 {
     public enum TextAlignmentOptions
@@ -12,7 +24,7 @@ namespace TMPro
         TopLeft = 257, Top = 258, TopRight = 260,
         Left = 513, Center = 514, Right = 516,
         BottomLeft = 1025, Bottom = 1026, BottomRight = 1028,
-        Midline = 4610
+        Midline = 4098
     }
     [Flags] public enum FontStyles { Normal = 0, Bold = 1, Italic = 2, Underline = 4, LowerCase = 8, UpperCase = 16, SmallCaps = 32 }
     public enum TextWrappingModes { NoWrap = 0, Normal = 1, PreserveWhitespace = 2, PreserveWhitespaceNoWrap = 3 }
@@ -23,6 +35,7 @@ namespace TMPro
     public class TMP_FontAsset : TMP_Asset
     {
         public Material material;
+        public UnityEngine.TextCore.FaceInfo faceInfo { get { return default(UnityEngine.TextCore.FaceInfo); } }
         public static TMP_FontAsset CreateFontAsset(Font font) { return null; }
         public bool HasCharacters(string text, out List<char> missingCharacters) { missingCharacters = null; return false; }
         public bool HasCharacter(char character) { return false; }
@@ -56,6 +69,7 @@ namespace TMPro
         public bool richText { get; set; }
         public bool enableAutoSizing { get; set; }
         public bool extraPadding { get; set; }
+        public float preferredWidth { get { return 0f; } }
         public void SetText(string sourceText) { }
         public void SetText(string sourceText, float arg0) { }
         public void SetText(string sourceText, float arg0, float arg1) { }

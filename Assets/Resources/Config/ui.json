@@ -1,6 +1,10 @@
 {
   "fontResourcePath": "Fonts/Jersey10 Raster",
-  "fallbackOsFonts": ["Roboto", "Noto Sans", "Arial"],
+  "fallbackOsFonts": [
+    "Roboto",
+    "Noto Sans",
+    "Arial"
+  ],
   "sizeBody": 32,
   "sizeTitle": 64,
   "sizeDisplay": 96,
@@ -9,5 +13,7 @@
   "displayFromHint": 81,
   "hugeFromHint": 125,
   "shadowOffsetPx": 2,
-  "shadowAlpha": 0.6
+  "shadowAlpha": 0.6,
+  "logoLineGap": 0.12,
+  "logoPlaquePadding": 0.3
 }
