@@ -19,6 +19,8 @@ namespace UnityEngine.TextCore
 
 namespace TMPro
 {
+    public class TMP_TextInfo { public int characterCount; }
+
     public enum TextAlignmentOptions
     {
         TopLeft = 257, Top = 258, TopRight = 260,
@@ -70,6 +72,7 @@ namespace TMPro
         public bool enableAutoSizing { get; set; }
         public bool extraPadding { get; set; }
         public float preferredWidth { get { return 0f; } }
+        public TMP_TextInfo textInfo { get { return null; } }
         public void SetText(string sourceText) { }
         public void SetText(string sourceText, float arg0) { }
         public void SetText(string sourceText, float arg0, float arg1) { }

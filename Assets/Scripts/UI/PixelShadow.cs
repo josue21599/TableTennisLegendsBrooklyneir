@@ -8,8 +8,11 @@ namespace Brooklyneir.UI
     /// it (a sibling placed before it), offset by a few pixels. Raster fonts cannot use TMP's SDF
     /// outline/underlay, and uGUI's Shadow/Outline effects do not apply to TMP meshes.
     ///
-    /// The copy's text is updated only when the source text changes (TMP's TEXT_CHANGED event),
-    /// never per frame. Layout, scale, alpha and visibility are mirrored in LateUpdate with plain
+    /// The copy's text is updated only when the source text changes, never per frame. TMP raises
+    /// TEXT_CHANGED while the canvas is being rebuilt, and uGUI ignores graphics marked dirty
+    /// inside that loop, so the handler only raises a flag and the text is copied in the next
+    /// LateUpdate (before the next rebuild). Changing the shadow inside the event left stale
+    /// text on screen (the countdown "3"). Layout, scale, alpha and visibility are mirrored in LateUpdate with plain
     /// value comparisons (no allocations).
     /// </summary>
     [RequireComponent(typeof(TMP_Text))]
@@ -21,6 +24,7 @@ namespace Brooklyneir.UI
         Vector2 _offset;
         float _alpha;
         float _lastSourceAlpha = -1f;
+        bool _textDirty;
 
         public TextMeshProUGUI ShadowText { get { return _shadow; } }
 
@@ -69,8 +73,8 @@ namespace Brooklyneir.UI
 
         void OnTextChanged(Object changed)
         {
-            if (changed != _source || _shadow == null) return;
-            CopyText();
+            if (changed != _source) return;
+            _textDirty = true; // copied in LateUpdate, outside the canvas rebuild loop
         }
 
         void CopyStyle()
@@ -118,6 +122,17 @@ namespace Brooklyneir.UI
         void LateUpdate()
         {
             if (_shadow == null) return;
+            if (_textDirty)
+            {
+                _textDirty = false;
+                CopyText();
+            }
+            // Safety net if the source was emptied without an event: no glyphs in the source,
+            // glyphs still in the shadow -> clear it (int comparisons only, no allocation).
+            if (_source.textInfo != null && _shadow.textInfo != null &&
+                _source.textInfo.characterCount == 0 && _shadow.textInfo.characterCount > 0)
+                _shadow.text = string.Empty;
+            if (_shadow.enabled != _source.enabled) _shadow.enabled = _source.enabled;
             CopyLayout();
             CopyAlpha();
         }
