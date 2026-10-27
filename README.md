@@ -48,7 +48,7 @@
 
 Table Tennis Legends Brooklyneir es un juego de ping-pong arcade pensado para jugar **cara a cara en un solo teléfono en horizontal**: el jugador 1 controla la mitad izquierda de la pantalla y el jugador 2 la derecha, con multitáctil simultáneo. También se puede jugar contra la máquina, en torneo o en modo entrenamiento.
 
-El objetivo técnico era construir un juego completo **sin depender de assets externos**: todos los modelos 3D, texturas, iconos, efectos y la interfaz se generan por código al arrancar, y los sonidos son originales.
+El objetivo técnico era construir un juego completo **casi sin assets externos**: los modelos 3D, las texturas, los iconos, los efectos y la interfaz se generan por código al arrancar, y los sonidos son originales. La única excepción es la tipografía, **Jersey 10**, que se incluye como archivo con su licencia libre (ver [Créditos](#créditos)).
 
 | | |
 |---|---|
@@ -159,7 +159,7 @@ La lógica de juego (física, reglas, marcador, poderes, economía, torneo e IA)
 | Motor | Unity 6.6 (6000.6) |
 | Render | Universal Render Pipeline 17 |
 | Entrada | Input System + EnhancedTouch |
-| Interfaz | uGUI, construida por código |
+| Interfaz | uGUI + TextMeshPro, construida por código · tipografía Jersey 10 (pixel art) |
 | Pruebas | Unity Test Framework (NUnit) |
 | Compilación Android | IL2CPP · ARM64 · API mínima 26 |
 | Audio | WAV originales generados con Python + síntesis de respaldo en C# |
@@ -230,7 +230,8 @@ Assets/
 ├── Art/Icon/            Iconos de la app (normal, redondo y adaptativo)
 ├── Resources/
 │   ├── Audio/           28 efectos y 2 músicas originales
-│   └── Config/          balance.json (equilibrado editable)
+│   ├── Config/          balance.json (equilibrado) y ui.json (fuente y tamaños de texto)
+│   └── Fonts/           Jersey 10 (asset de TextMeshPro) y su licencia OFL.txt
 └── Scripts/
     ├── Core/            Arranque, servicios y flujo de la app
     ├── Physics/         Simulación de la pelota y resolvedor de golpes
@@ -265,6 +266,12 @@ Assets/
 
 ---
 
+## Créditos
+
+- **Tipografía:** [Jersey 10](https://fonts.google.com/specimen/Jersey+10), de Sarah Cadigan-Fried, bajo licencia **SIL Open Font License 1.1**. Se incluye en `Assets/Resources/Fonts/` junto a su licencia (`OFL.txt`), que debe acompañar siempre a la fuente.
+
+---
+
 ## Autor
 
 **Josué Pérez Borja** · Estudiante de 2.º de DAM (Desarrollo de Aplicaciones Multiplataforma)
@@ -275,4 +282,4 @@ Assets/
 
 ---
 
-<sub>© 2026 Josué Pérez Borja. Todos los derechos reservados. Los gráficos, sonidos y la música son originales del proyecto.</sub>
+<sub>© 2026 Josué Pérez Borja. Todos los derechos reservados. Los gráficos, sonidos y la música son originales del proyecto; la tipografía Jersey 10 se distribuye bajo SIL OFL 1.1.</sub>

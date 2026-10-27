@@ -1,0 +1,13 @@
+{
+  "fontResourcePath": "Fonts/Jersey10 Raster",
+  "fallbackOsFonts": ["Roboto", "Noto Sans", "Arial"],
+  "sizeBody": 32,
+  "sizeTitle": 64,
+  "sizeDisplay": 96,
+  "sizeHuge": 128,
+  "titleFromHint": 47,
+  "displayFromHint": 81,
+  "hugeFromHint": 125,
+  "shadowOffsetPx": 2,
+  "shadowAlpha": 0.6
+}

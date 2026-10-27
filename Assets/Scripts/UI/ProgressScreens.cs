@@ -4,6 +4,7 @@ using Brooklyneir.Core;
 using Brooklyneir.Gameplay;
 using Brooklyneir.Progression;
 using Brooklyneir.SaveSystem;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -48,15 +49,15 @@ namespace Brooklyneir.UI
                 RectTransform rt = UIKit.Height((RectTransform)card.transform, 118f);
                 Image ic = UIKit.Icon(rt, done ? IconId.Trophy : IconId.Lock, done ? Theme.Gold : Theme.TextDim);
                 UIKit.At((RectTransform)ic.transform, 0f, 0.5f, 24f, 0f, 70f, 70f);
-                Text t = UIKit.Heading(rt, a.Title.ToUpperInvariant(), 34, done ? Theme.Gold : Theme.Text, TextAnchor.LowerLeft);
+                TMP_Text t = UIKit.Heading(rt, a.Title.ToUpperInvariant(), 34, done ? Theme.Gold : Theme.Text, TextAnchor.LowerLeft);
                 UIKit.Region((RectTransform)t.transform, 0.14f, 0.5f, 0.75f, 0.94f);
-                Text desc = UIKit.Label(rt, a.Description, 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+                TMP_Text desc = UIKit.Label(rt, a.Description, 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
                 UIKit.Region((RectTransform)desc.transform, 0.14f, 0.1f, 0.6f, 0.5f);
                 float prog = 0f;
                 try { prog = a.Progress(d); } catch (System.Exception) { prog = 0f; }
                 Image bar = UIKit.Bar(rt, done ? 1f : prog, done ? Theme.Success : Theme.Orange);
                 UIKit.Region((RectTransform)bar.transform.parent, 0.62f, 0.22f, 0.8f, 0.36f);
-                Text r = UIKit.Label(rt, "+" + a.Reward, 30, Theme.Gold, TextAnchor.MiddleRight);
+                TMP_Text r = UIKit.Label(rt, "+" + a.Reward, 30, Theme.Gold, TextAnchor.MiddleRight);
                 UIKit.Region((RectTransform)r.transform, 0.8f, 0f, 0.95f, 1f);
             }
         }
@@ -64,9 +65,9 @@ namespace Brooklyneir.UI
         static void Stat(RectTransform parent, string label, string value)
         {
             RectTransform row = UIKit.Height(UIKit.Node(parent, "Row"), 56f);
-            Text l = UIKit.Label(row, label, 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Normal);
+            TMP_Text l = UIKit.Label(row, label, 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Normal);
             UIKit.Region((RectTransform)l.transform, 0f, 0f, 0.7f, 1f);
-            Text v = UIKit.Label(row, value, 30, Theme.Text, TextAnchor.MiddleRight);
+            TMP_Text v = UIKit.Label(row, value, 30, Theme.Text, TextAnchor.MiddleRight);
             UIKit.Region((RectTransform)v.transform, 0.6f, 0f, 1f, 1f);
         }
     }
@@ -111,7 +112,7 @@ namespace Brooklyneir.UI
                     Game.Flow.RefreshBackground();
                 }), 32);
             UIKit.Height((RectTransform)reset.transform, 90f);
-            Text fps = UIKit.Label(Root, "Objetivo: 60 FPS (según el móvil). El modo BAJO reduce resolución, sombras y público.", 24, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
+            TMP_Text fps = UIKit.Label(Root, "Objetivo: 60 FPS (según el móvil). El modo BAJO reduce resolución, sombras y público.", 24, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
             UIKit.At((RectTransform)fps.transform, 0f, 0f, 70f, 10f, 1500f, 60f);
         }
 
@@ -141,7 +142,7 @@ namespace Brooklyneir.UI
 
             if (!hasBracket || (!st.active && !st.finished))
             {
-                Text intro = UIKit.Label(Root, "8 jugadores, eliminación directa: cuartos y semifinal a 7 puntos, final al mejor de 3 sets a 11.\n" +
+                TMP_Text intro = UIKit.Label(Root, "8 jugadores, eliminación directa: cuartos y semifinal a 7 puntos, final al mejor de 3 sets a 11.\n" +
                     "Cada ronda ganada da monedas. El campeón gana " + Game.Balance.economy.tournamentChampion + " monedas y desbloquea la Arena de Leyendas.",
                     32, Theme.Text, TextAnchor.MiddleCenter, FontStyle.Normal);
                 UIKit.Region((RectTransform)intro.transform, 0.1f, 0.45f, 0.9f, 0.75f);
@@ -163,7 +164,7 @@ namespace Brooklyneir.UI
                 UIKit.At((RectTransform)play.transform, 1f, 0f, -50f, 30f, 680f, 120f);
                 if (rival != null)
                 {
-                    Text vs = UIKit.Label(Root, "Rival: " + rival.Name + " \"" + rival.Nickname + "\"  ·  Dificultad " + DifficultyName(t.DifficultyForCurrentRound()),
+                    TMP_Text vs = UIKit.Label(Root, "Rival: " + rival.Name + " \"" + rival.Nickname + "\"  ·  Dificultad " + DifficultyName(t.DifficultyForCurrentRound()),
                         30, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
                     UIKit.At((RectTransform)vs.transform, 0f, 0f, 60f, 60f, 1100f, 60f);
                 }
@@ -180,7 +181,7 @@ namespace Brooklyneir.UI
             else
             {
                 bool champ = t.PlayerIsChampion;
-                Text res = UIKit.Heading(Root, champ ? "¡ERES EL CAMPEÓN!" : "ELIMINADO. CAMPEÓN: " + Tournament.EntrantName(st.bracket[14]).ToUpperInvariant(),
+                TMP_Text res = UIKit.Heading(Root, champ ? "¡ERES EL CAMPEÓN!" : "ELIMINADO. CAMPEÓN: " + Tournament.EntrantName(st.bracket[14]).ToUpperInvariant(),
                     44, champ ? Theme.Gold : Theme.Text, TextAnchor.MiddleLeft);
                 UIKit.At((RectTransform)res.transform, 0f, 0f, 60f, 50f, 1200f, 100f);
                 Button again = UIKit.Button(Root, "NUEVO TORNEO", IconId.Restart, ButtonStyle.Primary, StartNew, 40);
@@ -212,7 +213,7 @@ namespace Brooklyneir.UI
             for (int r = 0; r < 4; r++)
             {
                 float x0 = r * 0.25f, x1 = x0 + 0.23f;
-                Text h = UIKit.Label(area, titles[r], 26, Theme.TextDim);
+                TMP_Text h = UIKit.Label(area, titles[r], 26, Theme.TextDim);
                 UIKit.Region((RectTransform)h.transform, x0, 0.93f, x1, 1f);
                 for (int i = 0; i < sizes[r]; i++)
                 {
@@ -226,7 +227,7 @@ namespace Brooklyneir.UI
                     Image box = UIKit.Panel(area, bg, 18, false, "Slot");
                     UIKit.Region((RectTransform)box.transform, x0, yc - Mathf.Min(0.05f, slot * 0.4f), x1, yc + Mathf.Min(0.05f, slot * 0.4f));
                     string name = entrant < 0 ? "—" : (isPlayer ? "TÚ" : Tournament.Rivals[entrant].Name.ToUpperInvariant());
-                    Text n = UIKit.Label(box.transform, name, 26, eliminatedHere ? new Color(1f, 1f, 1f, 0.35f) : Theme.Text);
+                    TMP_Text n = UIKit.Label(box.transform, name, 26, eliminatedHere ? new Color(1f, 1f, 1f, 0.35f) : Theme.Text);
                     UIKit.Stretch((RectTransform)n.transform, 10f, 10f, 0f, 0f);
                 }
             }
@@ -249,11 +250,11 @@ namespace Brooklyneir.UI
                 RectTransform wr = UIKit.Height((RectTransform)wall.transform, 150f);
                 Image wic = UIKit.Icon(wr, IconId.Ball, Theme.Cyan);
                 UIKit.At((RectTransform)wic.transform, 0f, 0.5f, 30f, 0f, 90f, 90f);
-                Text wt = UIKit.Heading(wr, "PARED DE PRÁCTICA", 40, Theme.Text, TextAnchor.LowerLeft);
+                TMP_Text wt = UIKit.Heading(wr, "PARED DE PRÁCTICA", 40, Theme.Text, TextAnchor.LowerLeft);
                 UIKit.Region((RectTransform)wt.transform, 0.1f, 0.5f, 0.7f, 0.92f);
-                Text wd = UIKit.Label(wr, "Saca y devuelve la pelota contra la pared todas las veces que puedas. Sin rival, sin límite: sal cuando quieras.", 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+                TMP_Text wd = UIKit.Label(wr, "Saca y devuelve la pelota contra la pared todas las veces que puedas. Sin rival, sin límite: sal cuando quieras.", 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
                 UIKit.Region((RectTransform)wd.transform, 0.1f, 0.05f, 0.75f, 0.5f);
-                Text wb = UIKit.Label(wr, "Mejor racha: " + Game.Save.Data.stats.practiceBestStreak, 28, Theme.Gold, TextAnchor.MiddleRight);
+                TMP_Text wb = UIKit.Label(wr, "Mejor racha: " + Game.Save.Data.stats.practiceBestStreak, 28, Theme.Gold, TextAnchor.MiddleRight);
                 UIKit.Region((RectTransform)wb.transform, 0.72f, 0.2f, 0.97f, 0.8f);
             }
             foreach (DrillDefinition d in TrainingDrills.All)
@@ -266,9 +267,9 @@ namespace Brooklyneir.UI
                 Image ic = UIKit.Icon(rt, d.Kind == DrillKind.Precision ? IconId.Target : d.Kind == DrillKind.Spin ? IconId.Curve :
                     d.Kind == DrillKind.Smash ? IconId.Smash : d.Kind == DrillKind.Control ? IconId.ArrowRight : IconId.Ball, Theme.Success);
                 UIKit.At((RectTransform)ic.transform, 0f, 0.5f, 30f, 0f, 90f, 90f);
-                Text t = UIKit.Heading(rt, d.Title.ToUpperInvariant(), 40, Theme.Text, TextAnchor.LowerLeft);
+                TMP_Text t = UIKit.Heading(rt, d.Title.ToUpperInvariant(), 40, Theme.Text, TextAnchor.LowerLeft);
                 UIKit.Region((RectTransform)t.transform, 0.1f, 0.5f, 0.7f, 0.92f);
-                Text desc = UIKit.Label(rt, d.Instructions, 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+                TMP_Text desc = UIKit.Label(rt, d.Instructions, 24, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
                 UIKit.Region((RectTransform)desc.transform, 0.1f, 0.05f, 0.75f, 0.5f);
                 for (int s = 0; s < 3; s++)
                 {

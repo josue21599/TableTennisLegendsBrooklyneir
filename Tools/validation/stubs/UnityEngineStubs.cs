@@ -32,6 +32,11 @@ namespace UnityEngine
 
     public struct Quaternion
     {
+        public static bool operator ==(Quaternion a, Quaternion b) { return false; }
+        public static bool operator !=(Quaternion a, Quaternion b) { return true; }
+        public override bool Equals(object o) { return false; }
+        public override int GetHashCode() { return 0; }
+
         public float x, y, z, w;
         public Quaternion(float x, float y, float z, float w) { this.x = x; this.y = y; this.z = z; this.w = w; }
         public static Quaternion identity { get { return new Quaternion(0, 0, 0, 1); } }
@@ -164,6 +169,8 @@ namespace UnityEngine
 
     public class Transform : Component, IEnumerable
     {
+        public void SetSiblingIndex(int index) { }
+        public int GetSiblingIndex() { return 0; }
         public Vector3 position { get; set; }
         public Vector3 localPosition { get; set; }
         public Quaternion rotation { get; set; }
@@ -340,6 +347,8 @@ namespace UnityEngine
         public static void Vibrate() { }
     }
 
+    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    public class RequireComponent : Attribute { public RequireComponent(Type t) { } }
     [AttributeUsage(AttributeTargets.Method)]
     public class RuntimeInitializeOnLoadMethodAttribute : Attribute
     {
@@ -430,7 +439,11 @@ namespace UnityEngine
         public static Sprite Create(Texture2D texture, Rect rect, Vector2 pivot, float pixelsPerUnit, uint extrude, SpriteMeshType meshType, Vector4 border) { return null; }
     }
 
-    public class Font : Object { }
+    public class Font : Object
+    {
+        public static Font CreateDynamicFontFromOSFont(string[] fontNames, int size) { return null; }
+        public static string[] GetOSInstalledFontNames() { return new string[0]; }
+    }
 
     public struct CombineInstance { public Mesh mesh; }
 

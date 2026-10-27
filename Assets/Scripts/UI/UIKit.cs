@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Brooklyneir.Art;
 using Brooklyneir.Audio;
 using Brooklyneir.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -49,14 +50,23 @@ namespace Brooklyneir.UI
     /// <summary>Small UI construction kit (uGUI built from code; no prefabs needed).</summary>
     public static class UIKit
     {
-        static Font _font;
+        /// <summary>The single interface font instance (see UiFont).</summary>
+        public static TMP_FontAsset Font { get { return UiFont.Font; } }
 
-        public static Font Font
+        /// <summary>TextAnchor (used by the screens) to TextMeshPro alignment.</summary>
+        public static TextAlignmentOptions Align(TextAnchor a)
         {
-            get
+            switch (a)
             {
-                if (_font == null) _font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                return _font;
+                case TextAnchor.UpperLeft: return TextAlignmentOptions.TopLeft;
+                case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+                case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+                case TextAnchor.MiddleLeft: return TextAlignmentOptions.Left;
+                case TextAnchor.MiddleRight: return TextAlignmentOptions.Right;
+                case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+                case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+                case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+                default: return TextAlignmentOptions.Center;
             }
         }
 
@@ -119,33 +129,63 @@ namespace Brooklyneir.UI
             return img;
         }
 
-        public static Text Label(Transform parent, string text, int size, Color color, TextAnchor align = TextAnchor.MiddleCenter, FontStyle style = FontStyle.Bold)
+        /// <summary>
+        /// TMP_Text with the interface font at one of the four fixed sizes. <paramref name="size"/> is a
+        /// hint mapped to a tier (see UiConfig), so no free sizes reach the raster font. The style
+        /// argument is kept for the screens' calls but ignored: faux bold/italic would distort the
+        /// pixel font.
+        /// </summary>
+        public static TMP_Text Label(Transform parent, string text, int size, Color color, TextAnchor align = TextAnchor.MiddleCenter, FontStyle style = FontStyle.Bold)
+        {
+            return Label(parent, text, UiFont.Config.TierForHint(size), color, align);
+        }
+
+        public static TMP_Text Label(Transform parent, string text, TextTier tier, Color color, TextAnchor align = TextAnchor.MiddleCenter)
         {
             RectTransform rt = Node(parent, "Label");
-            Text t = rt.gameObject.AddComponent<Text>();
-            t.font = Font;
+            TextMeshProUGUI t = rt.gameObject.AddComponent<TextMeshProUGUI>();
+            TMP_FontAsset f = Font;
+            if (f != null) t.font = f;
+            t.fontSize = UiFont.Size(tier);
+            t.fontStyle = FontStyles.Normal;
             t.text = text;
-            t.fontSize = size;
             t.color = color;
-            t.alignment = align;
-            t.fontStyle = style;
+            t.alignment = Align(align);
             t.raycastTarget = false;
-            t.horizontalOverflow = HorizontalWrapMode.Wrap;
-            t.verticalOverflow = VerticalWrapMode.Overflow;
-            t.supportRichText = true;
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Overflow;
+            t.enableAutoSizing = false;
+            t.richText = true;
             return t;
         }
 
-        /// <summary>Sporty heading: italic bold with a dark drop shadow and outline.</summary>
-        public static Text Heading(Transform parent, string text, int size, Color color, TextAnchor align = TextAnchor.MiddleCenter)
+        /// <summary>Heading: same font, larger tier, with a crisp pixel drop shadow (no italic).</summary>
+        public static TMP_Text Heading(Transform parent, string text, int size, Color color, TextAnchor align = TextAnchor.MiddleCenter)
         {
-            Text t = Label(parent, text, size, color, align, FontStyle.BoldAndItalic);
-            Shadow sh = t.gameObject.AddComponent<Shadow>();
-            sh.effectColor = new Color(0f, 0f, 0f, 0.6f);
-            sh.effectDistance = new Vector2(3f, -4f);
-            UnityEngine.UI.Outline o = t.gameObject.AddComponent<UnityEngine.UI.Outline>();
-            o.effectColor = new Color(0f, 0f, 0f, 0.35f);
-            o.effectDistance = new Vector2(1.5f, -1.5f);
+            return Heading(parent, text, UiFont.Config.TierForHint(size), color, align);
+        }
+
+        public static TMP_Text Heading(Transform parent, string text, TextTier tier, Color color, TextAnchor align = TextAnchor.MiddleCenter)
+        {
+            TMP_Text t = Label(parent, text, tier, color, align);
+            t.gameObject.name = "Heading";
+            PixelShadow.Attach(t, UiFont.Config.shadowOffsetPx, UiFont.Config.shadowAlpha);
+            return t;
+        }
+
+        /// <summary>Texts in fixed boxes (buttons): wrap, and end with an ellipsis instead of spilling out.</summary>
+        public static TMP_Text FitBox(TMP_Text t)
+        {
+            t.textWrappingMode = TextWrappingModes.Normal;
+            t.overflowMode = TextOverflowModes.Ellipsis;
+            return t;
+        }
+
+        /// <summary>Single-line texts in fixed-height boxes: cut with an ellipsis instead of spilling.</summary>
+        public static TMP_Text SingleLine(TMP_Text t)
+        {
+            t.textWrappingMode = TextWrappingModes.NoWrap;
+            t.overflowMode = TextOverflowModes.Ellipsis;
             return t;
         }
 
@@ -209,9 +249,9 @@ namespace Brooklyneir.UI
             {
                 Image ic = Icon(rt, icon.Value, tc);
                 At((RectTransform)ic.transform, 0f, 0.5f, 26f, 0f, fontSize * 1.4f, fontSize * 1.4f);
-                Text t = Label(rt, label, fontSize, tc);
+                TMP_Text t = FitBox(Label(rt, label, fontSize, tc));
                 Stretch((RectTransform)t.transform, fontSize * 1.4f + 34f, 18f, 0f, 0f);
-                t.alignment = TextAnchor.MiddleLeft;
+                t.alignment = TextAlignmentOptions.Left;
             }
             else if (icon.HasValue)
             {
@@ -220,7 +260,7 @@ namespace Brooklyneir.UI
             }
             else
             {
-                Text t = Label(rt, label, fontSize, tc);
+                TMP_Text t = FitBox(Label(rt, label, fontSize, tc));
                 Stretch((RectTransform)t.transform, 12f, 12f, 0f, 0f);
             }
             rt.gameObject.AddComponent<ButtonFx>();
@@ -235,7 +275,7 @@ namespace Brooklyneir.UI
 
         public static void SetButtonLabel(Button b, string text)
         {
-            Text t = b.GetComponentInChildren<Text>();
+            TMP_Text t = b.GetComponentInChildren<TMP_Text>();
             if (t != null) t.text = text;
         }
 
@@ -244,9 +284,9 @@ namespace Brooklyneir.UI
         {
             RectTransform row = Node(parent, "Slider_" + label);
             Stretch(row);
-            Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
             Region((RectTransform)l.transform, 0f, 0f, 0.34f, 1f);
-            Text v = Label(row, "", 30, Theme.TextDim, TextAnchor.MiddleRight);
+            TMP_Text v = Label(row, "", 30, Theme.TextDim, TextAnchor.MiddleRight);
             Region((RectTransform)v.transform, 0.86f, 0f, 1f, 1f);
 
             RectTransform area = Node(row, "Track");
@@ -296,7 +336,7 @@ namespace Brooklyneir.UI
         {
             RectTransform row = Node(parent, "Toggle_" + label);
             Stretch(row);
-            Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
             Region((RectTransform)l.transform, 0f, 0f, 0.7f, 1f);
             RectTransform pill = Node(row, "Pill");
             At(pill, 1f, 0.5f, 0f, 0f, 130f, 62f);
@@ -336,7 +376,7 @@ namespace Brooklyneir.UI
             float labelShare = string.IsNullOrEmpty(label) ? 0f : 0.34f;
             if (labelShare > 0f)
             {
-                Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
+                TMP_Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
                 Region((RectTransform)l.transform, 0f, 0f, labelShare, 1f);
             }
             RectTransform box = Node(row, "Options");
@@ -374,13 +414,13 @@ namespace Brooklyneir.UI
         }
 
         /// <summary>"- value +" control cycling through a list of values.</summary>
-        public static Text Stepper(Transform parent, string label, string[] values, int index, Action<int> onChange)
+        public static TMP_Text Stepper(Transform parent, string label, string[] values, int index, Action<int> onChange)
         {
             RectTransform row = Node(parent, "Stepper_" + label);
             Stretch(row);
-            Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text l = Label(row, label, 32, Theme.Text, TextAnchor.MiddleLeft);
             Region((RectTransform)l.transform, 0f, 0f, 0.4f, 1f);
-            Text v = Label(row, values[Mathf.Clamp(index, 0, values.Length - 1)], 34, Theme.Gold);
+            TMP_Text v = Label(row, values[Mathf.Clamp(index, 0, values.Length - 1)], 34, Theme.Gold);
             Region((RectTransform)v.transform, 0.55f, 0f, 0.85f, 1f);
             int current = Mathf.Clamp(index, 0, values.Length - 1);
             Button minus = Button(row, "", IconId.Minus, ButtonStyle.Secondary, () =>
@@ -517,12 +557,12 @@ namespace Brooklyneir.UI
         }
 
         /// <summary>Coin balance chip.</summary>
-        public static Text CoinChip(Transform parent, int coins)
+        public static TMP_Text CoinChip(Transform parent, int coins)
         {
             Image bg = Panel(parent, new Color(0f, 0f, 0f, 0.45f), 30, false, "Coins");
             Image ic = Icon(bg.transform, IconId.Coin, Theme.Gold);
             At((RectTransform)ic.transform, 0f, 0.5f, 14f, 0f, 54f, 54f);
-            Text t = Label(bg.transform, coins.ToString("N0"), 36, Theme.Gold, TextAnchor.MiddleRight);
+            TMP_Text t = Label(bg.transform, coins.ToString("N0"), 36, Theme.Gold, TextAnchor.MiddleRight);
             Stretch((RectTransform)t.transform, 72f, 22f, 0f, 0f);
             return t;
         }

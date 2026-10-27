@@ -4,6 +4,7 @@ using Brooklyneir.Core;
 using Brooklyneir.Gameplay;
 using Brooklyneir.Rackets;
 using Brooklyneir.Tables;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,7 +23,7 @@ namespace Brooklyneir.UI
 
         readonly GameMode _mode;
         MatchConfig _cfg;
-        Text _notes;
+        TMP_Text _notes;
 
         public MatchSetupScreen(GameMode mode)
         {
@@ -123,7 +124,7 @@ namespace Brooklyneir.UI
 
             Button play = UIKit.Button(Root, "¡A JUGAR!", IconId.Play, ButtonStyle.Primary, StartMatch, 46);
             UIKit.At((RectTransform)play.transform, 1f, 0f, -60f, 30f, 520f, 120f);
-            Text hint = UIKit.Label(Root, p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Golpea atravesando la pelota: recto = recto o remate, en diagonal = a ese lado, arriba/abajo = efecto, atrás = globo.",
+            TMP_Text hint = UIKit.Label(Root, p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Golpea atravesando la pelota: recto = recto o remate, en diagonal = a ese lado, arriba/abajo = efecto, atrás = globo.",
                 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
             UIKit.At((RectTransform)hint.transform, 0f, 0f, 60f, 40f, 1200f, 100f);
             Validate();
@@ -140,9 +141,9 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)sw.transform, 0f, 0.5f, 30f, 0f, 100f, 100f);
             Image ic = UIKit.Icon(sw.transform, IconId.Racket, Color.white);
             UIKit.Stretch((RectTransform)ic.transform, 16f, 16f, 16f, 16f);
-            Text l = UIKit.Label(rt, label, 26, color, TextAnchor.LowerLeft);
+            TMP_Text l = UIKit.Label(rt, label, 26, color, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)l.transform, 0.2f, 0.52f, 0.9f, 0.9f);
-            Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 40, Theme.Text, TextAnchor.UpperLeft);
+            TMP_Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 40, Theme.Text, TextAnchor.UpperLeft);
             UIKit.Region((RectTransform)n.transform, 0.2f, 0.08f, 0.9f, 0.52f);
             Image arrow = UIKit.Icon(rt, IconId.ArrowRight, Theme.TextDim);
             UIKit.At((RectTransform)arrow.transform, 1f, 0.5f, -30f, 0f, 50f, 50f);
@@ -159,9 +160,9 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)sw.transform, 0f, 0.5f, 30f, 0f, 100f, 100f);
             Image ic = UIKit.Icon(sw.transform, IconId.Table, ProceduralTextures.Hex(def.LineColor));
             UIKit.Stretch((RectTransform)ic.transform, 14f, 14f, 14f, 14f);
-            Text l = UIKit.Label(rt, "MESA", 26, Theme.TextDim, TextAnchor.LowerLeft);
+            TMP_Text l = UIKit.Label(rt, "MESA", 26, Theme.TextDim, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)l.transform, 0.2f, 0.52f, 0.9f, 0.9f);
-            Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 40, Theme.Text, TextAnchor.UpperLeft);
+            TMP_Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 40, Theme.Text, TextAnchor.UpperLeft);
             UIKit.Region((RectTransform)n.transform, 0.2f, 0.08f, 0.9f, 0.52f);
             Image arrow = UIKit.Icon(rt, IconId.ArrowRight, Theme.TextDim);
             UIKit.At((RectTransform)arrow.transform, 1f, 0.5f, -30f, 0f, 50f, 50f);

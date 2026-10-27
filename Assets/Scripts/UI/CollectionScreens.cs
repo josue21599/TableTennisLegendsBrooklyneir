@@ -5,6 +5,7 @@ using Brooklyneir.Core;
 using Brooklyneir.Progression;
 using Brooklyneir.Rackets;
 using Brooklyneir.Tables;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -70,12 +71,12 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)sw.transform, 0f, 0.5f, 24f, 0f, 86f, 86f);
             Image half = UIKit.Panel(sw.transform, ProceduralTextures.Hex(def.BackhandRubber), 36, false, "Back");
             UIKit.Region((RectTransform)half.transform, 0.5f, 0f, 1f, 1f);
-            Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 36, Theme.Text, TextAnchor.LowerLeft);
+            TMP_Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 36, Theme.Text, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)n.transform, 0.2f, 0.45f, 0.72f, 0.92f);
-            Text r = UIKit.Label(rt, RacketCatalog.RarityName(def.Rarity) + "  ·  " + def.Style.ToUpperInvariant(), 24, Theme.RarityColor(def.Rarity), TextAnchor.UpperLeft);
+            TMP_Text r = UIKit.Label(rt, RacketCatalog.RarityName(def.Rarity) + "  ·  " + def.Style.ToUpperInvariant(), 24, Theme.RarityColor(def.Rarity), TextAnchor.UpperLeft);
             UIKit.Region((RectTransform)r.transform, 0.2f, 0.08f, 0.72f, 0.45f);
             bool owned = Game.Economy.OwnsRacket(def.Id);
-            Text status = UIKit.Label(rt, owned ? "" : def.Price.ToString("N0"), 32, Theme.Gold, TextAnchor.MiddleRight);
+            TMP_Text status = UIKit.Label(rt, owned ? "" : def.Price.ToString("N0"), 32, Theme.Gold, TextAnchor.MiddleRight);
             UIKit.Region((RectTransform)status.transform, 0.72f, 0f, 0.9f, 1f);
             Image ic = UIKit.Icon(rt, owned ? IconId.Check : IconId.Coin, owned ? Theme.Success : Theme.Gold);
             UIKit.At((RectTransform)ic.transform, 1f, 0.5f, -24f, 0f, 50f, 50f);
@@ -102,9 +103,9 @@ namespace Brooklyneir.UI
             fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fit.aspectRatio = 1f;
 
-            Text n = UIKit.Heading(_left, def.Name.ToUpperInvariant(), 50, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text n = UIKit.Heading(_left, def.Name.ToUpperInvariant(), 50, Theme.Text, TextAnchor.MiddleLeft);
             UIKit.Region((RectTransform)n.transform, 0f, 0.42f, 1f, 0.5f);
-            Text r = UIKit.Label(_left, RacketCatalog.RarityName(def.Rarity) + "  ·  " + def.Description, 26, Theme.RarityColor(def.Rarity), TextAnchor.UpperLeft, FontStyle.Normal);
+            TMP_Text r = UIKit.Label(_left, RacketCatalog.RarityName(def.Rarity) + "  ·  " + def.Description, 26, Theme.RarityColor(def.Rarity), TextAnchor.UpperLeft, FontStyle.Normal);
             UIKit.Region((RectTransform)r.transform, 0f, 0.34f, 1f, 0.42f);
 
             string[] labels = { "POTENCIA", "CONTROL", "EFECTO", "RESPUESTA", "PRECISIÓN" };
@@ -113,12 +114,12 @@ namespace Brooklyneir.UI
             for (int i = 0; i < 5; i++)
             {
                 float y0 = 0.27f - i * 0.065f;
-                Text l = UIKit.Label(_left, labels[i], 24, Theme.TextDim, TextAnchor.MiddleLeft);
+                TMP_Text l = UIKit.Label(_left, labels[i], 24, Theme.TextDim, TextAnchor.MiddleLeft);
                 UIKit.Region((RectTransform)l.transform, 0f, y0, 0.3f, y0 + 0.055f);
                 Color c = mine[i] > theirs[i] ? Theme.Success : (mine[i] < theirs[i] ? Theme.Danger : Theme.Orange);
                 Image bar = UIKit.Bar(_left, mine[i] / 10f, c, theirs[i] / 10f);
                 UIKit.Region((RectTransform)bar.transform.parent, 0.31f, y0 + 0.012f, 0.88f, y0 + 0.043f);
-                Text v = UIKit.Label(_left, mine[i].ToString(), 26, Theme.Text, TextAnchor.MiddleRight);
+                TMP_Text v = UIKit.Label(_left, mine[i].ToString(), 26, Theme.Text, TextAnchor.MiddleRight);
                 UIKit.Region((RectTransform)v.transform, 0.88f, y0, 1f, y0 + 0.055f);
             }
 
@@ -224,13 +225,13 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)sw.transform, 0f, 0.5f, 24f, 0f, 130f, 80f);
             Image line = UIKit.Panel(sw.transform, ProceduralTextures.Hex(def.LineColor), 2, false, "Line");
             UIKit.Region((RectTransform)line.transform, 0.48f, 0.08f, 0.52f, 0.92f);
-            Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 36, Theme.Text, TextAnchor.LowerLeft);
+            TMP_Text n = UIKit.Heading(rt, def.Name.ToUpperInvariant(), 36, Theme.Text, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)n.transform, 0.25f, 0.45f, 0.72f, 0.92f);
-            Text d = UIKit.Label(rt, def.Description, 22, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+            TMP_Text d = UIKit.Label(rt, def.Description, 22, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
             UIKit.Region((RectTransform)d.transform, 0.25f, 0.06f, 0.75f, 0.45f);
             bool owned = Game.Economy.OwnsTable(def.Id);
             string status = owned ? "" : (def.Unlock == UnlockRule.Coins ? def.Price.ToString("N0") : "TORNEO");
-            Text st = UIKit.Label(rt, status, 30, Theme.Gold, TextAnchor.MiddleRight);
+            TMP_Text st = UIKit.Label(rt, status, 30, Theme.Gold, TextAnchor.MiddleRight);
             UIKit.Region((RectTransform)st.transform, 0.72f, 0f, 0.9f, 1f);
             Image ic = UIKit.Icon(rt, owned ? IconId.Check : (def.Unlock == UnlockRule.Coins ? IconId.Coin : IconId.Lock), owned ? Theme.Success : Theme.Gold);
             UIKit.At((RectTransform)ic.transform, 1f, 0.5f, -24f, 0f, 50f, 50f);
@@ -252,9 +253,9 @@ namespace Brooklyneir.UI
             fit.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
             fit.aspectRatio = 1f;
             Game.Preview.ShowTable(def);
-            Text n = UIKit.Heading(_left, def.Name.ToUpperInvariant(), 50, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text n = UIKit.Heading(_left, def.Name.ToUpperInvariant(), 50, Theme.Text, TextAnchor.MiddleLeft);
             UIKit.Region((RectTransform)n.transform, 0f, 0.22f, 1f, 0.32f);
-            Text d = UIKit.Label(_left, def.Description + "\nMismas medidas y física en todas las mesas.", 28, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+            TMP_Text d = UIKit.Label(_left, def.Description + "\nMismas medidas y física en todas las mesas.", 28, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
             UIKit.Region((RectTransform)d.transform, 0f, 0.05f, 1f, 0.22f);
 
             bool owned = Game.Economy.OwnsTable(def.Id);
@@ -314,7 +315,7 @@ namespace Brooklyneir.UI
         protected override void OnBuild()
         {
             Header("TIENDA");
-            Text info = UIKit.Label(Root, "Gana monedas jugando partidos, torneos, retos de entrenamiento y logros. Sin compras reales.", 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
+            TMP_Text info = UIKit.Label(Root, "Gana monedas jugando partidos, torneos, retos de entrenamiento y logros. Sin compras reales.", 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
             UIKit.Region((RectTransform)info.transform, 0.04f, 0.77f, 0.96f, 0.85f);
             RectTransform area = UIKit.Node(Root, "Items");
             UIKit.Region(area, 0.03f, 0.04f, 0.97f, 0.76f);
@@ -339,7 +340,7 @@ namespace Brooklyneir.UI
             }
             if (shown == 0)
             {
-                Text done = UIKit.Heading(content, "¡LO TIENES TODO!", 48, Theme.Gold);
+                TMP_Text done = UIKit.Heading(content, "¡LO TIENES TODO!", 48, Theme.Gold);
                 UIKit.Height((RectTransform)done.transform, 140f);
             }
         }
@@ -352,12 +353,12 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)sw.transform, 0f, 0.5f, 24f, 0f, 90f, 90f);
             Image ic = UIKit.Icon(sw.transform, icon, Color.white);
             UIKit.Stretch((RectTransform)ic.transform, 16f, 16f, 16f, 16f);
-            Text k = UIKit.Label(rt, kind + "  ·  " + tag, 24, Theme.TextDim, TextAnchor.UpperLeft);
+            TMP_Text k = UIKit.Label(rt, kind + "  ·  " + tag, 24, Theme.TextDim, TextAnchor.UpperLeft);
             UIKit.Region((RectTransform)k.transform, 0.12f, 0.1f, 0.7f, 0.45f);
-            Text n = UIKit.Heading(rt, name.ToUpperInvariant(), 38, Theme.Text, TextAnchor.LowerLeft);
+            TMP_Text n = UIKit.Heading(rt, name.ToUpperInvariant(), 38, Theme.Text, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)n.transform, 0.12f, 0.45f, 0.7f, 0.92f);
             bool afford = price >= 0 && Game.Economy.CanAfford(price);
-            Text p = UIKit.Label(rt, price >= 0 ? price.ToString("N0") : "TORNEO", 34, afford ? Theme.Gold : Theme.TextDim, TextAnchor.MiddleRight);
+            TMP_Text p = UIKit.Label(rt, price >= 0 ? price.ToString("N0") : "TORNEO", 34, afford ? Theme.Gold : Theme.TextDim, TextAnchor.MiddleRight);
             UIKit.Region((RectTransform)p.transform, 0.7f, 0f, 0.92f, 1f);
             Image c = UIKit.Icon(rt, price >= 0 ? IconId.Coin : IconId.Lock, afford ? Theme.Gold : Theme.TextDim);
             UIKit.At((RectTransform)c.transform, 1f, 0.5f, -24f, 0f, 54f, 54f);

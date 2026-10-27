@@ -5,6 +5,7 @@ using Brooklyneir.Core;
 using Brooklyneir.Gameplay;
 using Brooklyneir.PowerUps;
 using Brooklyneir.Progression;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -15,7 +16,7 @@ namespace Brooklyneir.UI
     {
         protected override void OnBuild()
         {
-            Text t = UIKit.Heading(Root, "PAUSA", 110, Theme.Text);
+            TMP_Text t = UIKit.Heading(Root, "PAUSA", 110, Theme.Text);
             UIKit.At((RectTransform)t.transform, 0.5f, 1f, 0f, -80f, 900f, 160f);
             RectTransform col = UIKit.Node(Root, "Buttons");
             UIKit.At(col, 0.5f, 0.5f, 0f, -40f, 620f, 560f);
@@ -45,7 +46,7 @@ namespace Brooklyneir.UI
         readonly RewardSummary _rewards;
         readonly bool _tournament;
         float _t;
-        Text _coins;
+        TMP_Text _coins;
         int _shownCoins;
 
         public ResultsScreen(MatchResult r, RewardSummary rewards, bool tournament)
@@ -65,17 +66,17 @@ namespace Brooklyneir.UI
             string title;
             if (vsCpu) title = w == 0 ? "¡VICTORIA!" : "DERROTA";
             else title = "¡GANA EL JUGADOR " + (w + 1) + "!";
-            Text h = UIKit.Heading(Root, title, 110, vsCpu && w != 0 ? Theme.TextDim : wc);
+            TMP_Text h = UIKit.Heading(Root, title, 110, vsCpu && w != 0 ? Theme.TextDim : wc);
             UIKit.At((RectTransform)h.transform, 0.5f, 1f, 0f, -40f, 1600f, 160f);
 
             // Score.
             Image card = UIKit.Panel(Root, new Color(0.06f, 0.08f, 0.14f, 0.9f), 30, false, "Card");
             UIKit.Region((RectTransform)card.transform, 0.05f, 0.2f, 0.52f, 0.8f);
-            Text big = UIKit.Heading(card.transform, _r.Config.bestOfSets > 1 ? _r.Sets[0] + " - " + _r.Sets[1] : PointsLine(), 120, Theme.Text);
+            TMP_Text big = UIKit.Heading(card.transform, _r.Config.bestOfSets > 1 ? _r.Sets[0] + " - " + _r.Sets[1] : PointsLine(), 120, Theme.Text);
             UIKit.Region((RectTransform)big.transform, 0f, 0.6f, 1f, 0.95f);
             string sets = "";
             for (int i = 0; i < _r.SetScores.Count; i++) sets += (i > 0 ? "    " : "") + _r.SetScores[i][0] + "-" + _r.SetScores[i][1];
-            Text setLine = UIKit.Label(card.transform, sets, 32, Theme.TextDim);
+            TMP_Text setLine = UIKit.Label(card.transform, sets, 32, Theme.TextDim);
             UIKit.Region((RectTransform)setLine.transform, 0f, 0.5f, 1f, 0.6f);
             string p2 = vsCpu ? "CPU" : "J2";
             string[] rows =
@@ -86,11 +87,11 @@ namespace Brooklyneir.UI
                 "Peloteo más largo: " + _r.LongestRally,
                 "Duración: " + Mathf.FloorToInt(_r.DurationSeconds / 60f) + ":" + Mathf.FloorToInt(_r.DurationSeconds % 60f).ToString("00")
             };
-            Text legend = UIKit.Label(card.transform, (vsCpu ? "TÚ" : "J1") + " / " + p2, 24, Theme.TextDim);
+            TMP_Text legend = UIKit.Label(card.transform, (vsCpu ? "TÚ" : "J1") + " / " + p2, 24, Theme.TextDim);
             UIKit.Region((RectTransform)legend.transform, 0f, 0.43f, 1f, 0.5f);
             for (int i = 0; i < rows.Length; i++)
             {
-                Text row = UIKit.Label(card.transform, rows[i], 30, Theme.Text);
+                TMP_Text row = UIKit.Label(card.transform, rows[i], 30, Theme.Text);
                 UIKit.Region((RectTransform)row.transform, 0f, 0.35f - i * 0.075f, 1f, 0.42f - i * 0.075f);
             }
 
@@ -103,7 +104,7 @@ namespace Brooklyneir.UI
             UIKit.At((RectTransform)_coins.transform, 0.5f, 1f, 60f, -40f, 360f, 120f);
             string lines = string.Join("\n", _rewards.Lines.ToArray());
             for (int i = 0; i < _rewards.Unlocks.Count; i++) lines += "\n¡DESBLOQUEADO! " + _rewards.Unlocks[i];
-            Text lt = UIKit.Label(rcard.transform, lines, 30, Theme.Text, TextAnchor.UpperCenter, FontStyle.Normal);
+            TMP_Text lt = UIKit.Label(rcard.transform, lines, 30, Theme.Text, TextAnchor.UpperCenter, FontStyle.Normal);
             UIKit.Region((RectTransform)lt.transform, 0.05f, 0.05f, 0.95f, 0.72f);
 
             // Buttons.
@@ -163,18 +164,18 @@ namespace Brooklyneir.UI
 
         protected override void OnBuild()
         {
-            Text h = UIKit.Heading(Root, _r.Drill.Title.ToUpperInvariant(), 72, Theme.Text);
+            TMP_Text h = UIKit.Heading(Root, _r.Drill.Title.ToUpperInvariant(), 72, Theme.Text);
             UIKit.At((RectTransform)h.transform, 0.5f, 1f, 0f, -50f, 1600f, 120f);
             for (int s = 0; s < 3; s++)
             {
                 Image star = UIKit.Icon(Root, s < _r.Stars ? IconId.Star : IconId.StarEmpty, s < _r.Stars ? Theme.Gold : Theme.TextDim);
                 UIKit.At((RectTransform)star.transform, 0.5f, 0.5f, (s - 1) * 220f, 140f, 190f, 190f);
             }
-            Text grade = UIKit.Heading(Root, TrainingDrills.Grade(_r.Stars), 64, _r.Stars > 0 ? Theme.Gold : Theme.TextDim);
+            TMP_Text grade = UIKit.Heading(Root, TrainingDrills.Grade(_r.Stars), 64, _r.Stars > 0 ? Theme.Gold : Theme.TextDim);
             UIKit.At((RectTransform)grade.transform, 0.5f, 0.5f, 0f, -20f, 1200f, 100f);
-            Text score = UIKit.Label(Root, "Aciertos: " + _r.Successes + " de " + _r.Balls + "    ·    Para 3 estrellas: " + _r.Drill.ThreeStars, 36, Theme.Text);
+            TMP_Text score = UIKit.Label(Root, "Aciertos: " + _r.Successes + " de " + _r.Balls + "    ·    Para 3 estrellas: " + _r.Drill.ThreeStars, 36, Theme.Text);
             UIKit.At((RectTransform)score.transform, 0.5f, 0.5f, 0f, -110f, 1400f, 70f);
-            Text coins = UIKit.Label(Root, "+" + _rewards.Coins + " monedas    " + string.Join("   ", _rewards.Lines.ToArray()), 32, Theme.Gold);
+            TMP_Text coins = UIKit.Label(Root, "+" + _rewards.Coins + " monedas    " + string.Join("   ", _rewards.Lines.ToArray()), 32, Theme.Gold);
             UIKit.At((RectTransform)coins.transform, 0.5f, 0.5f, 0f, -180f, 1600f, 70f);
             DrillDefinition drill = _r.Drill;
             Button again = UIKit.Button(Root, "REPETIR", IconId.Restart, ButtonStyle.Primary, () => Game.Flow.StartTraining(drill), 40);
@@ -202,7 +203,7 @@ namespace Brooklyneir.UI
         readonly Action _then;
         int _page;
         RectTransform _content;
-        Text _pageLabel;
+        TMP_Text _pageLabel;
         Button _next;
 
         public TutorialScreen(Action then)
@@ -215,7 +216,7 @@ namespace Brooklyneir.UI
         protected override void OnBuild()
         {
             _page = 0;
-            Text h = UIKit.Heading(Root, "CÓMO SE JUEGA", 64, Theme.Orange, TextAnchor.MiddleLeft);
+            TMP_Text h = UIKit.Heading(Root, "CÓMO SE JUEGA", 64, Theme.Orange, TextAnchor.MiddleLeft);
             UIKit.At((RectTransform)h.transform, 0f, 1f, 60f, -30f, 1200f, 110f);
             _content = UIKit.Node(Root, "Page");
             UIKit.Region(_content, 0.05f, 0.18f, 0.95f, 0.84f);
@@ -292,9 +293,9 @@ namespace Brooklyneir.UI
             UIKit.Region((RectTransform)card.transform, 0f, y0, 1f, y1);
             Image ic = UIKit.Icon(card.transform, icon, Theme.Orange);
             UIKit.At((RectTransform)ic.transform, 0f, 0.5f, 30f, 0f, 100f, 100f);
-            Text t = UIKit.Heading(card.transform, title, 36, Theme.Text, TextAnchor.LowerLeft);
+            TMP_Text t = UIKit.Heading(card.transform, title, 36, Theme.Text, TextAnchor.LowerLeft);
             UIKit.Region((RectTransform)t.transform, 0.09f, 0.52f, 0.98f, 0.95f);
-            Text b = UIKit.Label(card.transform, text, 27, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
+            TMP_Text b = UIKit.Label(card.transform, text, 27, Theme.TextDim, TextAnchor.UpperLeft, FontStyle.Normal);
             UIKit.Region((RectTransform)b.transform, 0.09f, 0.05f, 0.98f, 0.52f);
         }
     }

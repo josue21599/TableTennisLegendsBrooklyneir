@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Brooklyneir.Art;
 using Brooklyneir.Audio;
 using Brooklyneir.Core;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -67,7 +68,7 @@ namespace Brooklyneir.UI
         }
 
         // Shared header: back button + title + coin chip.
-        protected Text Header(string title, bool back = true, bool coins = true)
+        protected TMP_Text Header(string title, bool back = true, bool coins = true)
         {
             RectTransform bar = UIKit.Node(Root, "Header");
             UIKit.Region(bar, 0f, 0.86f, 1f, 1f);
@@ -76,18 +77,18 @@ namespace Brooklyneir.UI
                 Button b = UIKit.Button(bar, "", IconId.Back, ButtonStyle.Secondary, () => OnBack(), 30, Sfx.UiBack);
                 UIKit.At((RectTransform)b.transform, 0f, 0.5f, 40f, 0f, 110f, 100f);
             }
-            Text t = UIKit.Heading(bar, title, 64, Theme.Text, TextAnchor.MiddleLeft);
+            TMP_Text t = UIKit.Heading(bar, title, 64, Theme.Text, TextAnchor.MiddleLeft);
             UIKit.Stretch((RectTransform)t.transform, back ? 180f : 50f, 400f, 0f, 0f);
             if (coins)
             {
-                Text c = UIKit.CoinChip(bar, Game.Economy != null ? Game.Economy.Coins : 0);
+                TMP_Text c = UIKit.CoinChip(bar, Game.Economy != null ? Game.Economy.Coins : 0);
                 UIKit.At((RectTransform)c.transform.parent, 1f, 0.5f, -40f, 0f, 280f, 84f);
                 _coinText = c;
             }
             return t;
         }
 
-        Text _coinText;
+        TMP_Text _coinText;
 
         protected void RefreshCoins()
         {
@@ -111,7 +112,7 @@ namespace Brooklyneir.UI
         Rect _lastSafe;
         Vector2Int _lastSize;
         RectTransform _toast;
-        Text _toastText;
+        TMP_Text _toastText;
         float _toastTimer;
         RectTransform _dialog;
 
@@ -160,7 +161,8 @@ namespace Brooklyneir.UI
             UIKit.Stretch(HudLayer);
             ScreenLayer = UIKit.Node(SafeRoot, "Screens");
             UIKit.Stretch(ScreenLayer);
-            DialogLayer = UIKit.Node(root, "Dialogs");
+            // Dialogs and toasts live inside the safe area too (notches, rounded corners).
+            DialogLayer = UIKit.Node(SafeRoot, "Dialogs");
             UIKit.Stretch(DialogLayer);
             ApplySafeArea();
         }
@@ -295,9 +297,9 @@ namespace Brooklyneir.UI
             Image card = UIKit.Panel(shade, Theme.PanelLight, 36, true, "Card");
             UIKit.At((RectTransform)card.transform, 0.5f, 0.5f, 0f, 0f, 1000f, 520f);
             UIKit.Outline(card.transform, new Color(1f, 1f, 1f, 0.12f), 36, 3);
-            Text t = UIKit.Heading(card.transform, title, 52, Theme.Text);
+            TMP_Text t = UIKit.Heading(card.transform, title, 52, Theme.Text);
             UIKit.Region((RectTransform)t.transform, 0.05f, 0.72f, 0.95f, 0.95f);
-            Text b = UIKit.Label(card.transform, body, 34, Theme.TextDim, TextAnchor.MiddleCenter, FontStyle.Normal);
+            TMP_Text b = UIKit.Label(card.transform, body, 34, Theme.TextDim, TextAnchor.MiddleCenter, FontStyle.Normal);
             UIKit.Region((RectTransform)b.transform, 0.07f, 0.34f, 0.93f, 0.72f);
             Button cancel = UIKit.Button(card.transform, cancelText, null, ButtonStyle.Secondary, () =>
             {

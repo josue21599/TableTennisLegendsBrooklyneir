@@ -2,6 +2,7 @@ using Brooklyneir.Art;
 using Brooklyneir.Audio;
 using Brooklyneir.Core;
 using Brooklyneir.Gameplay;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -10,7 +11,7 @@ namespace Brooklyneir.UI
     /// <summary>Animated logo over the arena demo. Tap anywhere to continue.</summary>
     public class TitleScreen : UIScreen
     {
-        Text _tap;
+        TMP_Text _tap;
         RectTransform _logo;
         float _t;
 
@@ -21,7 +22,7 @@ namespace Brooklyneir.UI
             BuildLogo(_logo, 1f);
             _tap = UIKit.Heading(Root, "TOCA PARA EMPEZAR", 48, Color.white);
             UIKit.At((RectTransform)_tap.transform, 0.5f, 0f, 0f, 150f, 1200f, 90f);
-            Text v = UIKit.Label(Root, "v" + Application.version + "  ·  2 jugadores en un móvil  ·  sin conexión", 26, Theme.TextDim);
+            TMP_Text v = UIKit.Label(Root, "v" + Application.version + "  ·  2 jugadores en un móvil  ·  sin conexión", 26, Theme.TextDim);
             UIKit.At((RectTransform)v.transform, 0.5f, 0f, 0f, 50f, 1400f, 50f);
             Button full = UIKit.Button(Root, "", null, ButtonStyle.Ghost, () => Game.Flow.GoToMenu());
             UIKit.Stretch((RectTransform)full.transform);
@@ -33,13 +34,13 @@ namespace Brooklyneir.UI
 
         public static void BuildLogo(RectTransform parent, float scale)
         {
-            Text top = UIKit.Heading(parent, "TABLE TENNIS", Mathf.RoundToInt(92 * scale), Theme.Text);
+            TMP_Text top = UIKit.Heading(parent, "TABLE TENNIS", Mathf.RoundToInt(92 * scale), Theme.Text);
             UIKit.Region((RectTransform)top.transform, 0f, 0.62f, 1f, 0.98f);
-            Text legends = UIKit.Heading(parent, "LEGENDS", Mathf.RoundToInt(170 * scale), Theme.Orange);
+            TMP_Text legends = UIKit.Heading(parent, "LEGENDS", Mathf.RoundToInt(170 * scale), Theme.Orange);
             UIKit.Region((RectTransform)legends.transform, 0f, 0.22f, 1f, 0.7f);
             Image strip = UIKit.Panel(parent, Theme.Cyan, 12, false, "Strip");
             UIKit.Region((RectTransform)strip.transform, 0.2f, 0.06f, 0.8f, 0.2f);
-            Text brook = UIKit.Heading(strip.transform, "BROOKLYNEIR", Mathf.RoundToInt(56 * scale), new Color(0.05f, 0.07f, 0.12f));
+            TMP_Text brook = UIKit.Heading(strip.transform, "BROOKLYNEIR", Mathf.RoundToInt(56 * scale), new Color(0.05f, 0.07f, 0.12f));
             UIKit.Stretch((RectTransform)brook.transform);
             Image ball = UIKit.Icon(parent, IconId.Ball, Theme.Gold);
             UIKit.At((RectTransform)ball.transform, 0.5f, 0.5f, 560f * scale, 70f * scale, 110f * scale, 110f * scale);
@@ -66,7 +67,7 @@ namespace Brooklyneir.UI
             UIKit.At(logo, 0f, 1f, 50f, -20f, 760f, 270f);
             TitleScreen.BuildLogo(logo, 0.5f);
 
-            Text c = UIKit.CoinChip(Root, Game.Economy.Coins);
+            TMP_Text c = UIKit.CoinChip(Root, Game.Economy.Coins);
             UIKit.At((RectTransform)c.transform.parent, 1f, 1f, -40f, -40f, 300f, 90f);
 
             RectTransform modes = UIKit.Node(Root, "Modes");
@@ -110,9 +111,9 @@ namespace Brooklyneir.UI
             UIKit.Region((RectTransform)band.transform, 0f, 0.86f, 1f, 1f);
             Image ic = UIKit.Icon(rt, icon, accent);
             UIKit.At((RectTransform)ic.transform, 0.5f, 0.62f, 0f, 0f, 150f, 150f);
-            Text t = UIKit.Heading(rt, title, 38, Theme.Text);
+            TMP_Text t = UIKit.Heading(rt, title, 38, Theme.Text);
             UIKit.Region((RectTransform)t.transform, 0.04f, 0.2f, 0.96f, 0.4f);
-            Text s = UIKit.Label(rt, subtitle, 26, Theme.TextDim, TextAnchor.UpperCenter, FontStyle.Normal);
+            TMP_Text s = UIKit.Label(rt, subtitle, 26, Theme.TextDim, TextAnchor.UpperCenter, FontStyle.Normal);
             UIKit.Region((RectTransform)s.transform, 0.04f, 0.02f, 0.96f, 0.2f);
         }
 

@@ -3,6 +3,7 @@ using Brooklyneir.Audio;
 using Brooklyneir.Core;
 using Brooklyneir.Gameplay;
 using Brooklyneir.PowerUps;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -22,11 +23,11 @@ namespace Brooklyneir.UI
         {
             public int Player;
             public RectTransform Root;
-            public Text MyScore, OppScore, MySets, OppSets, MyName, OppName, Timer, Message, Count;
+            public TMP_Text MyScore, OppScore, MySets, OppSets, MyName, OppName, Timer, Message, Count;
             public Image ServeMine, ServeOpp;
             public Button PowerButton;
             public Image PowerBg, PowerIcon, PowerCooldown;
-            public Text PowerLabel;
+            public TMP_Text PowerLabel;
             public Button SpecialButton;
             public Image SpecialFill, SpecialIcon, SpecialBg;
             public Image FrozenTint, SlowTint;
@@ -35,6 +36,10 @@ namespace Brooklyneir.UI
             public float MessageTimer;
             public RectTransform MessageRect;
             public RectTransform Board;
+            // Last values written, so texts change only when their value changes (no per-frame work or garbage).
+            public int MyScoreV = int.MinValue, OppScoreV = int.MinValue, MySetsV = int.MinValue, OppSetsV = int.MinValue, TimerV = int.MinValue;
+            public string PowerLabelV;
+            public readonly char[] TimerBuf = new char[8];
         }
 
         RectTransform _root;
@@ -42,10 +47,13 @@ namespace Brooklyneir.UI
         MatchController _match;
         Button _pause;
         RectTransform _training, _trainingIntro;
-        Text _trainingTitle, _trainingCounter, _trainingText;
+        TMP_Text _trainingTitle, _trainingCounter, _trainingText;
         RectTransform _practice;
-        Text _practiceStreak, _practiceBest, _practiceTotal, _practiceTime;
+        TMP_Text _practiceStreak, _practiceBest, _practiceTotal, _practiceTime;
         Button _exit;
+        int _practiceStreakV = int.MinValue, _practiceBestV = int.MinValue, _practiceTotalV = int.MinValue, _practiceTimeV = int.MinValue;
+        readonly char[] _practiceTimeBuf = new char[8];
+        int _trainingCounterV = int.MinValue;
         bool _visible;
 
         public void Build(UIManager ui, MatchController match)
@@ -71,7 +79,7 @@ namespace Brooklyneir.UI
             _trainingIntro = (RectTransform)intro.transform;
             UIKit.At(_trainingIntro, 0.5f, 0.5f, 0f, 0f, 1100f, 560f);
             UIKit.Outline(_trainingIntro, new Color(1f, 1f, 1f, 0.15f), 36, 3);
-            Text it = UIKit.Heading(_trainingIntro, "ENTRENAMIENTO", 56, Theme.Gold);
+            TMP_Text it = UIKit.Heading(_trainingIntro, "ENTRENAMIENTO", 56, Theme.Gold);
             UIKit.Region((RectTransform)it.transform, 0.05f, 0.75f, 0.95f, 0.95f);
             _trainingText = UIKit.Label(_trainingIntro, "", 36, Theme.Text, TextAnchor.MiddleCenter, FontStyle.Normal);
             UIKit.Region((RectTransform)_trainingText.transform, 0.07f, 0.3f, 0.93f, 0.75f);
@@ -106,12 +114,12 @@ namespace Brooklyneir.UI
             return UIKit.At(rt, ax, ay, x, y, w, h);
         }
 
-        static Text PracticeStat(RectTransform parent, int index, string label)
+        static TMP_Text PracticeStat(RectTransform parent, int index, string label)
         {
             float x0 = index * 0.25f, x1 = x0 + 0.25f;
-            Text l = UIKit.Label(parent, label, 22, Theme.TextDim);
+            TMP_Text l = UIKit.Label(parent, label, 22, Theme.TextDim);
             UIKit.Region((RectTransform)l.transform, x0, 0.62f, x1, 0.95f);
-            Text v = UIKit.Heading(parent, "0", 52, Theme.Text);
+            TMP_Text v = UIKit.Heading(parent, "0", 52, Theme.Text);
             UIKit.Region((RectTransform)v.transform, x0, 0.04f, x1, 0.66f);
             return v;
         }
@@ -244,6 +252,13 @@ namespace Brooklyneir.UI
                     f.OppName.text = Brooklyneir.Progression.Tournament.Rivals[_match.Config.tournamentRival].Nickname.ToUpperInvariant();
                 f.MyName.text = vsCpu ? "TÚ" : "J" + (p + 1);
             }
+            for (int p = 0; p < 2; p++)
+            {
+                Frame f = _frames[p];
+                f.MyScoreV = f.OppScoreV = f.MySetsV = f.OppSetsV = f.TimerV = int.MinValue;
+                f.PowerLabelV = null;
+            }
+            _practiceStreakV = _practiceBestV = _practiceTotalV = _practiceTimeV = _trainingCounterV = int.MinValue;
             bool practice = _match.IsPracticeWall;
             _training.gameObject.SetActive(training && !practice);
             _trainingIntro.gameObject.SetActive(training && !practice);
@@ -307,20 +322,21 @@ namespace Brooklyneir.UI
                 int o = 1 - p;
                 if (score != null)
                 {
-                    f.MyScore.text = score.Points[p].ToString();
-                    f.OppScore.text = score.Points[o].ToString();
+                    HudText.SetInt(f.MyScore, ref f.MyScoreV, score.Points[p]);
+                    HudText.SetInt(f.OppScore, ref f.OppScoreV, score.Points[o]);
                     bool sets = score.SetsToWin > 1;
-                    f.MySets.text = sets ? score.Sets[p].ToString() : "";
-                    f.OppSets.text = sets ? score.Sets[o].ToString() : "";
+                    HudText.SetIntOrBlank(f.MySets, ref f.MySetsV, sets, score.Sets[p]);
+                    HudText.SetIntOrBlank(f.OppSets, ref f.OppSetsV, sets, score.Sets[o]);
                     f.ServeMine.enabled = _match.ServeOwner == p;
                     f.ServeOpp.enabled = _match.ServeOwner == o;
                 }
                 if (_match.Config.timeLimitMinutes > 0f && !_match.IsTraining)
                 {
                     float left = Mathf.Max(0f, _match.Config.timeLimitMinutes * 60f - _match.MatchClock);
-                    f.Timer.text = left <= 0f ? "¡TIEMPO!" : string.Format("{0}:{1:00}", (int)(left / 60f), (int)(left % 60f));
+                    if (left <= 0f) HudText.SetLiteral(f.Timer, ref f.TimerV, -1, "¡TIEMPO!");
+                    else HudText.SetClock(f.Timer, ref f.TimerV, (int)left, f.TimerBuf);
                 }
-                else f.Timer.text = "";
+                else HudText.SetLiteral(f.Timer, ref f.TimerV, -2, "");
 
                 PlayerPowerState s = powers.Players[p];
                 if (f.PowerButton.gameObject.activeSelf)
@@ -337,7 +353,8 @@ namespace Brooklyneir.UI
                     Color active = ActiveColor(s);
                     f.PowerBg.color = active.a > 0f ? Color.Lerp(Theme.Panel, active, 0.55f + Mathf.Sin(Time.unscaledTime * 8f) * 0.15f)
                         : (has ? Color.Lerp(Theme.Panel, PowerVisuals.ColorOf(s.Held), 0.35f) : new Color(0.08f, 0.1f, 0.16f, 0.75f));
-                    f.PowerLabel.text = has ? (s.Cooldown > 0f ? "ESPERA" : "¡USAR!") : (active.a > 0f ? "ACTIVO" : "PODER");
+                    string label = has ? (s.Cooldown > 0f ? "ESPERA" : "¡USAR!") : (active.a > 0f ? "ACTIVO" : "PODER");
+                    if (!ReferenceEquals(label, f.PowerLabelV)) { f.PowerLabelV = label; f.PowerLabel.text = label; }
                     f.PowerLabel.color = has && s.Cooldown <= 0f ? Color.white : Theme.TextDim;
                     PlayerPowerState os = powers.Players[o];
                     f.OppPowerIcon.enabled = os.Held != PowerUpType.None;
@@ -377,14 +394,21 @@ namespace Brooklyneir.UI
             if (_match.IsPracticeWall && _match.PracticeStats != null)
             {
                 PracticeWallStats ps = _match.PracticeStats;
-                _practiceStreak.text = ps.CurrentStreak.ToString();
-                _practiceBest.text = ps.BestStreak.ToString();
-                _practiceTotal.text = ps.TotalReturns.ToString();
-                int secs = (int)ps.SessionSeconds;
-                _practiceTime.text = string.Format("{0}:{1:00}", secs / 60, secs % 60);
+                HudText.SetInt(_practiceStreak, ref _practiceStreakV, ps.CurrentStreak);
+                HudText.SetInt(_practiceBest, ref _practiceBestV, ps.BestStreak);
+                HudText.SetInt(_practiceTotal, ref _practiceTotalV, ps.TotalReturns);
+                HudText.SetClock(_practiceTime, ref _practiceTimeV, (int)ps.SessionSeconds, _practiceTimeBuf);
             }
             if (_match.IsTraining && _match.Drill != null)
-                _trainingCounter.text = "Bola " + Mathf.Min(_match.TrainingFed, _match.Drill.Balls) + "/" + _match.Drill.Balls + "    Aciertos " + _match.TrainingSuccesses;
+            {
+                int fed = Mathf.Min(_match.TrainingFed, _match.Drill.Balls);
+                int key = (fed * 1000 + _match.Drill.Balls) * 1000 + _match.TrainingSuccesses;
+                if (key != _trainingCounterV)
+                {
+                    _trainingCounterV = key;
+                    _trainingCounter.SetText("Bola {0}/{1}    Aciertos {2}", fed, _match.Drill.Balls, _match.TrainingSuccesses);
+                }
+            }
             _pause.gameObject.SetActive(_match.Phase != MatchPhase.MatchOver);
         }
 
@@ -396,6 +420,54 @@ namespace Brooklyneir.UI
             if (s.ShieldActive) return PowerVisuals.ColorOf(PowerUpType.Shield);
             if (s.SlowActive) return PowerVisuals.ColorOf(PowerUpType.Slow);
             return new Color(0f, 0f, 0f, 0f);
+        }
+    }
+
+    /// <summary>
+    /// Allocation-free HUD text updates: TextMeshPro's SetText with numeric arguments and
+    /// SetCharArray with a reused buffer; each text is written only when its value changes.
+    /// </summary>
+    static class HudText
+    {
+        public static void SetInt(TMP_Text t, ref int cache, int value)
+        {
+            if (cache == value) return;
+            cache = value;
+            t.SetText("{0}", value);
+        }
+
+        public static void SetIntOrBlank(TMP_Text t, ref int cache, bool show, int value)
+        {
+            int key = show ? value : int.MinValue + 1;
+            if (cache == key) return;
+            cache = key;
+            if (show) t.SetText("{0}", value);
+            else t.text = "";
+        }
+
+        /// <summary>Writes a fixed string once; <paramref name="key"/> identifies it in the cache.</summary>
+        public static void SetLiteral(TMP_Text t, ref int cache, int key, string value)
+        {
+            if (cache == key) return;
+            cache = key;
+            t.text = value;
+        }
+
+        /// <summary>m:ss into a reused buffer (seconds >= 0).</summary>
+        public static void SetClock(TMP_Text t, ref int cache, int seconds, char[] buffer)
+        {
+            if (seconds < 0) seconds = 0;
+            if (cache == seconds) return;
+            cache = seconds;
+            int minutes = seconds / 60, secs = seconds % 60;
+            int n = 0;
+            if (minutes >= 100) buffer[n++] = (char)('0' + (minutes / 100) % 10);
+            if (minutes >= 10) buffer[n++] = (char)('0' + (minutes / 10) % 10);
+            buffer[n++] = (char)('0' + minutes % 10);
+            buffer[n++] = ':';
+            buffer[n++] = (char)('0' + secs / 10);
+            buffer[n++] = (char)('0' + secs % 10);
+            t.SetCharArray(buffer, 0, n);
         }
     }
 }
