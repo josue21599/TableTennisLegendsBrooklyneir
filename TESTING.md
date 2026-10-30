@@ -1,27 +1,29 @@
 # Pruebas
 
-Este documento separa lo que **se ha ejecutado de verdad** de lo que **queda pendiente** porque necesita Unity o un móvil.
+Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
+
+**Resumen:** 119 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 101 de 101 superadas
+### 1.1 Pruebas automáticas: 119
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). Se ejecutaron con Mono sobre el código real del juego, usando una implementación funcional de `Vector3`/`Mathf` y un sustituto mínimo de NUnit con los mismos nombres:
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **119**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **115**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
-| Grupo | Pruebas | Qué garantizan |
+| Archivo | Pruebas | Qué cubren |
 |---|---|---|
-| Física de la pelota (7) | bote con el coeficiente de restitución, una bola a 25 m/s no atraviesa la mesa, red que frena una bola baja, bola alta que pasa, toque en la cinta que sigue, caída al suelo hasta pararse, curva por efecto lateral | Rebotes, red y ausencia de atravesamientos |
-| Resolvedor de golpes (2) | 60 golpes aleatorios caen a menos de 2 cm del objetivo y salvan la red; el aplanado reduce la altura sobre la red | La pelota va donde el modelo decide |
-| Modelo de golpes (7) | clasificación por gesto (normal, rápido, remate, defensivo), el J2 golpea hacia −z, >90 % de golpes normales centrados entran, más potencia = vuelo más corto, efecto lateral, súper remate limitado y devolvible, la curva dobla hacia el objetivo | Controles coherentes y justos |
-| Árbitro del punto (7) | bote único obligatorio, doble bote, fallo tras bote, bola fuera, red + bote propio, red que entra, eventos tras el final ignorados | Reglas del punto |
-| Marcador (7) | victoria a 11 por 2, empate final, sin "ganar por 2", rotación de saque cada 2 y cada punto en el empate, sets y primer saque alterno, límite de tiempo y punto de oro, nada tras el final | Puntuación consistente |
-| Configuración (2) | corrige opciones contradictorias, sets necesarios | Partida personalizada |
-| Poderes (11) | un poder guardado, el aleatorio da poderes reales, los temporizadores terminan, enfriamiento, congelación limitada, el escudo bloquea la congelación, el fuego se apaga al devolverlo, golpes armados que se consumen, no acumulables, todo se limpia al terminar el punto y al reiniciar, golpe especial | Los 7 poderes y sus límites |
-| Economía (5), Guardado (3), Torneo (5), Logros (1), Recompensas (5), Raquetas (2) | sin saldo negativo, compras válidas, mesa de torneo no vendible, saneado de guardados corruptos o antiguos, cuadro reproducible con semilla, campeón y eliminación, logros pagados una vez, estrellas de entrenamiento pagadas una vez, estadísticas que cambian valores reales | Progresión |
-| Entrada e IA (8) | dos dedos simultáneos a dos jugadores, un segundo dedo en la misma zona se ignora, toques sobre botones no mueven raquetas, contra la CPU toda la pantalla es del J1, el dedo conserva dueño al cruzar el centro; la IA espera su tiempo de reacción, falla menos en difícil y golpea hacia el lado correcto | Multitáctil local e IA |
-| Integración (1) | 60 peloteos CPU contra CPU con física, golpes, árbitro e IA reales: todos terminan y hay intercambios | Las piezas encajan |
+| `PhysicsTests` | 26 | Física de la pelota (botes, red, cinta, sin atravesar la mesa a 25 m/s, efecto lateral), resolvedor de golpes y modelo de golpes: tipo según la dirección del gesto, desvío lateral acotado y proporcional, profundidad, determinismo, súper remate devolvible y curva |
+| `RulesTests` | 16 | Árbitro del punto (bote, doble bote, fuera, red, cinta), marcador (11 por 2, empates, rotación de saque, sets, tiempo y punto de oro) y configuración de partida |
+| `PowerUpTests` | 11 | Los 7 poderes: duraciones, enfriamientos, interacciones y limpieza al final del punto |
+| `ProgressionTests` | 16 | Economía, guardado corrupto o antiguo, torneo reproducible con semilla, logros y catálogo de raquetas |
+| `RewardsTests` | 5 | Recompensas de partido y estrellas de entrenamiento pagadas una sola vez |
+| `InputAndAITests` | 9 | Dos dedos simultáneos, prioridad de la interfaz, tiempos de reacción de la IA e integración de 60 peloteos CPU contra CPU |
+| `PracticeWallTests` | 18 | Pared de práctica: rebote dirigido, sin atravesar la pared a 10–40 m/s, reglas de pérdida, racha, sesión sin fin y determinismo |
+| `UiConfigTests` | 4 | Tamaños de texto fijos, configuración inválida reparada y logotipo apilado con las métricas de la fuente |
+| `UiFontTests` | 4 | Solo en Unity: fuente única, respaldo si falta y todos los caracteres del juego (tildes, ñ, ¡ ¿) en la fuente |
+| `AnimationTests` | 10 | Golpes de la mano según su tipo, reposo, celebración antes del siguiente saque, miradas, reacciones y ola del público |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 
@@ -39,7 +41,7 @@ Con estos datos se ajustaron gravedad, velocidades, efecto y márgenes (`balance
 
 Todo el código (juego, interfaz, editor) se compiló sin errores contra declaraciones de la API de Unity 6 escritas a mano (`Tools/validation/stubs`), en cuatro variantes: Input System / Input Manager clásico × editor / Android. Esto detectó y corrigió errores reales (por ejemplo, argumentos de tipo incorrecto en el generador de escenarios).
 
-**Límite:** esas declaraciones las escribí yo a partir de la documentación de Unity. Si alguna firma no coincide exactamente con Unity 6.3, el error solo aparecerá al abrir el proyecto en el editor.
+**Límite:** esas declaraciones las escribí yo a partir de la documentación de Unity. El proyecto ya se ha abierto y compilado en Unity 6.6, así que esta comprobación queda como red de seguridad para el código nuevo.
 
 ### 1.4 Mallas y modelos
 
@@ -53,41 +55,39 @@ Todo el código (juego, interfaz, editor) se compiló sin errores contra declara
 - Icono de 1024 px revisado visualmente.
 - `balance.json` generado desde los valores por defecto del código y validado como JSON.
 
-## 2. Pruebas que no se han podido hacer aquí
+## 2. Pruebas en Unity y en el móvil
 
-- Abrir el proyecto en Unity 6.3, resolver paquetes y compilar con el compilador de Unity.
-- Ejecutar la configuración automática (URP, materiales, escena, ajustes de Android).
-- Ver el juego en movimiento, la interfaz, los efectos de partículas y la cámara.
-- Compilar la APK con IL2CPP e instalarla.
-- Medir FPS en un móvil real.
+Lo que no se podía comprobar fuera de Unity ya está hecho: el proyecto se abre y compila en **Unity 6.6**, la configuración automática funciona, el juego se ha visto en movimiento (interfaz, efectos y cámara), la APK se compila con IL2CPP y se ha probado en un móvil real.
 
-## 3. Pruebas manuales en el móvil (pendientes)
+## 3. Pruebas manuales en el móvil: 24 de 24 superadas
 
-Marca cada punto al probarlo. Si algo falla, `adb logcat -s Unity` muestra la causa.
+**Dispositivo:** OPPO Reno11 F · Android 16 · pantalla con agujero para la cámara.
+
+Para repetirlas en otro móvil: si algo falla, `adb logcat -s Unity` muestra la causa.
 
 | # | Prueba | Cómo | Resultado |
 |---|---|---|---|
-| 1 | Arranca correctamente | Abrir la app: título animado sobre la arena | ☐ |
-| 2 | El menú permite navegar | Entrar y salir de cada pantalla; botón Atrás vuelve | ☐ |
-| 3 | Siempre en horizontal | Girar el móvil en todas las direcciones | ☐ |
-| 4 | Dos dedos a la vez | Partida rápida: los dos jugadores mueven y golpean a la vez | ☐ |
-| 5 | La raqueta no sale de su zona | Arrastrar al máximo en todas las direcciones | ☐ |
-| 6 | Botes correctos | Observar botes en la mesa y fuera | ☐ |
-| 7 | Red consistente | Golpes bajos y rápidos: la red frena; la cinta deja pasar a veces | ☐ |
-| 8 | Puntos bien contados | Comparar el marcador con lo que ocurre | ☐ |
-| 9 | El partido termina | Llegar a los puntos configurados; pantalla de resultados | ☐ |
-| 10 | Cada poder funciona | Recoger y usar los 7 (partida personalizada, frecuencia alta) | ☐ |
-| 11 | Los efectos terminan | Ver que cada indicador se apaga | ☐ |
-| 12 | Las raquetas cambian el juego | Iron Wall frente a Rooftop Viper: control frente a potencia | ☐ |
-| 13 | Mesas desbloqueadas seleccionables | Comprar Azotea Nocturna y jugar en ella | ☐ |
-| 14 | Las monedas se guardan | Ganar monedas, cerrar la app del todo, abrir | ☐ |
-| 15 | El progreso se conserva | Desbloqueos, logros, estrellas y torneo tras reiniciar | ☐ |
-| 16 | Contra la máquina | Fácil, normal y difícil: diferencia notable | ☐ |
-| 17 | El torneo progresa | Ganar cuartos y ver el cuadro; perder y ver el campeón | ☐ |
-| 18 | Partida personalizada | 3 puntos, 3 sets, 2 minutos, sin poderes: se respeta | ☐ |
-| 19 | Pausa y reanudación | Botón de pausa y botón Atrás | ☐ |
-| 20 | Cambio de aplicación | Ir a inicio o recibir una llamada a mitad de punto: queda en pausa | ☐ |
-| 21 | Distintos tamaños de pantalla | Móvil con notch y tableta: botones visibles y nada cortado | ☐ |
-| 22 | Compilación Android | APK de depuración generada e instalada | ☐ |
-| 23 | Rendimiento | Calidad Media a ~60 FPS en un móvil medio; si no, probar Baja | ☐ |
-| 24 | Vibración | Remates con la vibración activada y sin ella | ☐ |
+| 1 | Arranca correctamente | Abrir la app: título animado sobre la arena | ✅ |
+| 2 | El menú permite navegar | Entrar y salir de cada pantalla; botón Atrás vuelve | ✅ |
+| 3 | Siempre en horizontal | Girar el móvil en todas las direcciones | ✅ |
+| 4 | Dos dedos a la vez | Partida rápida: los dos jugadores mueven y golpean a la vez | ✅ |
+| 5 | La raqueta no sale de su zona | Arrastrar al máximo en todas las direcciones | ✅ |
+| 6 | Botes correctos | Observar botes en la mesa y fuera | ✅ |
+| 7 | Red consistente | Golpes bajos y rápidos: la red frena; la cinta deja pasar a veces | ✅ |
+| 8 | Puntos bien contados | Comparar el marcador con lo que ocurre | ✅ |
+| 9 | El partido termina | Llegar a los puntos configurados; pantalla de resultados | ✅ |
+| 10 | Cada poder funciona | Recoger y usar los 7 (partida personalizada, frecuencia alta) | ✅ |
+| 11 | Los efectos terminan | Ver que cada indicador se apaga | ✅ |
+| 12 | Las raquetas cambian el juego | Iron Wall frente a Rooftop Viper: control frente a potencia | ✅ |
+| 13 | Mesas desbloqueadas seleccionables | Comprar Azotea Nocturna y jugar en ella | ✅ |
+| 14 | Las monedas se guardan | Ganar monedas, cerrar la app del todo, abrir | ✅ |
+| 15 | El progreso se conserva | Desbloqueos, logros, estrellas y torneo tras reiniciar | ✅ |
+| 16 | Contra la máquina | Fácil, normal y difícil: diferencia notable | ✅ |
+| 17 | El torneo progresa | Ganar cuartos y ver el cuadro; perder y ver el campeón | ✅ |
+| 18 | Partida personalizada | 3 puntos, 3 sets, 2 minutos, sin poderes: se respeta | ✅ |
+| 19 | Pausa y reanudación | Botón de pausa y botón Atrás | ✅ |
+| 20 | Cambio de aplicación | Ir a inicio o recibir una llamada a mitad de punto: queda en pausa | ✅ |
+| 21 | Distintos tamaños de pantalla | Móvil con notch y tableta: botones visibles y nada cortado | ✅ |
+| 22 | Compilación Android | APK de depuración generada e instalada | ✅ |
+| 23 | Rendimiento | Calidad Media a ~60 FPS en un móvil medio; si no, probar Baja | ✅ |
+| 24 | Vibración | Remates con la vibración activada y sin ella | ✅ |

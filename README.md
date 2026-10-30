@@ -268,7 +268,7 @@ Assets/
 
 ## Estado y próximos pasos
 
-**Estado actual:** jugable en el editor de Unity 6.6 y en compilación para Android. Pruebas en dispositivo en curso.
+**Estado actual:** jugable en el editor de Unity 6.6 y en Android; las 24 pruebas manuales superadas en un OPPO Reno11 F (Android 16).
 
 - [x] Partido a dos jugadores con multitáctil
 - [x] CPU con tres dificultades, torneo y entrenamiento
@@ -277,7 +277,7 @@ Assets/
 - [x] Interfaz pixel art con la tipografía Jersey 10
 - [x] Animaciones de mano (golpe según su tipo, reposo y celebración) y de público (miradas, aplausos, saltos y ola)
 - [x] 119 pruebas automáticas
-- [ ] Completar las pruebas en varios dispositivos Android
+- [x] Pruebas manuales en un móvil Android real (24 de 24)
 - [ ] Publicación en Google Play
 
 ---
