@@ -10,6 +10,7 @@ using Brooklyneir.Core;
 using Brooklyneir.Physics;
 using Brooklyneir.PowerUps;
 using Brooklyneir.Rackets;
+using Brooklyneir.Tables;
 using UnityEngine;
 
 namespace Brooklyneir.Gameplay
@@ -390,6 +391,7 @@ namespace Brooklyneir.Gameplay
             _ballView.SetLook(CurrentLook());
             _ballView.Sync(_sim.Position, dt);
             _camera.TrackBall(_sim.Position, _ballInPlay);
+            if (Game.Arena != null) Game.Arena.SetCrowdFocus(_sim.Position, _ballInPlay || Phase == MatchPhase.ServeWait);
         }
 
         void UpdateIntro(float dt)
@@ -483,7 +485,7 @@ namespace Brooklyneir.Gameplay
             else Referee.StartRally(server);
             Launch(server, ctx.ContactPoint, res);
             Phase = MatchPhase.Rally;
-            Rackets[server].PlaySwing(0.3f);
+            Rackets[server].PlaySwing(0.3f, ShotType.Serve);
             PlaySfx(Brooklyneir.Audio.Sfx.Serve, 0.9f);
             if (Message != null) Message(server, "", Color.white);
         }
@@ -703,7 +705,7 @@ namespace Brooklyneir.Gameplay
                 default: strength = 0.4f; fx = Color.white; break;
             }
             if (res.ConsumedCurve) Say(p, "¡CURVA!", PowerVisuals.ColorOf(PowerUpType.Curve));
-            Rackets[p].PlaySwing(strength);
+            Rackets[p].PlaySwing(strength, res.Type);
             _vfx.Hit(contact, fx, strength);
             if (res.Type == ShotType.SuperSmash || res.Type == ShotType.Special || res.Type == ShotType.Smash) _vfx.Smash(contact, fx);
             PlaySfx(strength > 0.85f ? Brooklyneir.Audio.Sfx.HitSmash : (strength < 0.3f ? Brooklyneir.Audio.Sfx.HitSoft : Brooklyneir.Audio.Sfx.HitClean), 0.6f + strength * 0.4f, _rng.Range(0.95f, 1.06f));
@@ -941,6 +943,8 @@ namespace Brooklyneir.Gameplay
             _pointsWon[winner]++;
             Phase = MatchPhase.PointOver;
             _phaseTimer = _cfg.match.pointPauseSeconds;
+            Rackets[winner].PlayCelebration(true);
+            Rackets[1 - winner].PlayCelebration(false);
 
             if (IsDemo)
             {
@@ -951,7 +955,8 @@ namespace Brooklyneir.Gameplay
             Say(winner, "¡PUNTO!", PlayerColors[winner]);
             Say(1 - winner, reason, new Color(1f, 1f, 1f, 0.85f));
             PlaySfx(Brooklyneir.Audio.Sfx.Point, 0.9f);
-            if (Game.Arena != null) Game.Arena.Cheer(RallyHits >= 6 ? 1f : 0.5f);
+            bool bigPoint = RallyHits >= 6 || ev.SetWon || ev.MatchWon || Score.IsMatchPoint(0) || Score.IsMatchPoint(1);
+            if (Game.Arena != null) Game.Arena.React(bigPoint ? CrowdReaction.Cheer : CrowdReaction.Clap);
             if (RallyHits >= 6) PlaySfx(Brooklyneir.Audio.Sfx.Cheer, 0.7f);
             if (ev.SetWon && !ev.MatchWon)
             {
@@ -981,7 +986,7 @@ namespace Brooklyneir.Gameplay
             _vfx.SetFireTrail(null, false);
             if (_orb != null) _orb.Despawn();
             _vfx.Confetti(new Vector3(0f, 2.2f, 0f));
-            if (Game.Arena != null) Game.Arena.Cheer(1f);
+            if (Game.Arena != null) Game.Arena.React(CrowdReaction.Wave);
             PlaySfx(Brooklyneir.Audio.Sfx.Win, 1f);
             if (MatchFinished != null) MatchFinished(_result);
         }

@@ -169,6 +169,7 @@ namespace UnityEngine
 
     public class Transform : Component, IEnumerable
     {
+        public Vector3 InverseTransformDirection(Vector3 d) { return d; }
         public void SetSiblingIndex(int index) { }
         public int GetSiblingIndex() { return 0; }
         public Vector3 position { get; set; }

@@ -1,0 +1,84 @@
+{
+  "normal": {
+    "duration": 0.3,
+    "pitch": 40,
+    "roll": 0,
+    "yaw": 10,
+    "lift": 0
+  },
+  "fast": {
+    "duration": 0.22,
+    "pitch": 55,
+    "roll": 0,
+    "yaw": 18,
+    "lift": 0
+  },
+  "smash": {
+    "duration": 0.32,
+    "pitch": 75,
+    "roll": 0,
+    "yaw": 0,
+    "lift": -0.07
+  },
+  "superSmash": {
+    "duration": 0.36,
+    "pitch": 90,
+    "roll": 0,
+    "yaw": 0,
+    "lift": -0.09
+  },
+  "special": {
+    "duration": 0.4,
+    "pitch": 85,
+    "roll": 25,
+    "yaw": 15,
+    "lift": -0.05
+  },
+  "spin": {
+    "duration": 0.34,
+    "pitch": 30,
+    "roll": 45,
+    "yaw": 0,
+    "lift": 0.08
+  },
+  "defensive": {
+    "duration": 0.42,
+    "pitch": -35,
+    "roll": 0,
+    "yaw": 0,
+    "lift": 0.04
+  },
+  "serve": {
+    "duration": 0.3,
+    "pitch": 25,
+    "roll": 0,
+    "yaw": 0,
+    "lift": 0.02
+  },
+  "strengthScaleMin": 0.75,
+  "strengthScaleMax": 1.25,
+  "strokePeakAt": 0.3,
+  "idlePitch": 3,
+  "idleRoll": 2.5,
+  "idleLift": 0.012,
+  "idleFrequency": 0.9,
+  "celebrateSeconds": 1.1,
+  "celebrateLift": 0.22,
+  "celebratePitch": 25,
+  "celebrateRoll": 12,
+  "celebratePumpHz": 2.5,
+  "sadSeconds": 1.0,
+  "sadPitch": -28,
+  "sadLift": -0.05,
+  "crowdHeadMaxYaw": 55,
+  "crowdHeadMaxPitch": 20,
+  "crowdHeadSpeedMin": 3,
+  "crowdHeadSpeedMax": 7,
+  "crowdReactionMaxDelay": 0.35,
+  "clapSeconds": 1.8,
+  "clapHz": 4.5,
+  "cheerSeconds": 2.2,
+  "waveSeconds": 4,
+  "waveLaps": 1.5,
+  "waveWidthDeg": 50
+}

@@ -49,5 +49,16 @@ namespace Brooklyneir.Tables
         {
             if (Environment != null && Environment.Crowd != null) Environment.Crowd.Cheer(intensity);
         }
+
+        public void React(CrowdReaction reaction)
+        {
+            if (Environment != null && Environment.Crowd != null) Environment.Crowd.React(reaction);
+        }
+
+        /// <summary>Heads in the crowd follow this point (the ball) while active. Called every frame, no allocation.</summary>
+        public void SetCrowdFocus(Vector3 worldPosition, bool active)
+        {
+            if (Environment != null && Environment.Crowd != null) Environment.Crowd.SetFocus(worldPosition, active);
+        }
     }
 }

@@ -341,11 +341,11 @@ namespace Brooklyneir.Tables
                 person.transform.localPosition = p;
                 Material shirt = MaterialLibrary.Surface(SurfaceKind.Fabric, shirts[(i + seed) % shirts.Length]);
                 Prop(person, "Body", body, shirt, new Vector3(0f, 0.36f, 0f), Vector3.zero, Vector3.one, false);
-                Prop(person, "Head", head, skins[(i * 3 + seed) % 3], new Vector3(0f, 0.8f, 0f), Vector3.zero, Vector3.one, false);
+                GameObject headGo = Prop(person, "Head", head, skins[(i * 3 + seed) % 3], new Vector3(0f, 0.8f, 0f), Vector3.zero, Vector3.one, false);
                 GameObject armL = Prop(person, "ArmL", arm, shirt, new Vector3(-0.2f, 0.5f, 0f), new Vector3(0f, 0f, -15f), Vector3.one, false);
                 GameObject armR = Prop(person, "ArmR", arm, shirt, new Vector3(0.2f, 0.5f, 0f), new Vector3(0f, 0f, 15f), Vector3.one, false);
                 person.transform.LookAt(new Vector3(0f, p.y, 0f));
-                r.Crowd.AddFan(person.transform, armL.transform, armR.transform, h);
+                r.Crowd.AddFan(person.transform, armL.transform, armR.transform, headGo.transform, h);
             }
         }
 

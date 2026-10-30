@@ -8,7 +8,7 @@
 ![C#](https://img.shields.io/badge/C%23-.NET%20Standard%202.1-512BD4?logo=csharp&logoColor=white)
 ![URP](https://img.shields.io/badge/Render-URP%2017-2C7BE5)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-109%20pasan-brightgreen)
+![Tests](https://img.shields.io/badge/tests-119%20pasan-brightgreen)
 
 </div>
 
@@ -56,7 +56,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~13.900 líneas en 68 archivos + 109 pruebas automáticas |
+| **Código** | ~14.500 líneas en 72 archivos + 119 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -75,6 +75,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 - Golpes según el gesto: normal, rápido, remate, defensivo y con efecto.
 - 7 poderes (fuego, ralentización, curva, súper remate, escudo, congelación y aleatorio), cada uno con duración, enfriamiento y contrapartida.
 - Golpe especial que se carga durante el punto.
+- **Animaciones con personalidad:** cada tipo de golpe tiene su gesto de raqueta (remate, efecto, globo…), la mano se balancea mientras espera y celebra o se lamenta tras cada punto. El público sigue la bola con la cabeza, aplaude, salta en los peloteos largos y hace la ola al terminar el partido.
 
 **🏆 Progresión**
 - 8 raquetas con estadísticas que cambian el juego: potencia, control, efecto, respuesta y precisión.
@@ -128,6 +129,11 @@ No usa el motor de física de Unity: una pelota de 3 cm a más de 10 m/s contra 
 - Los títulos llevan una **sombra pixelada de 2 px**, hecha con una copia del texto, porque las fuentes raster no admiten los contornos de TextMeshPro.
 - El **logotipo se coloca con las métricas reales de la fuente** (altura de mayúscula), con la separación entre líneas configurable en `ui.json`: se ve compacto en la pantalla de título y en la esquina del menú.
 - El HUD del partido actualiza marcador, reloj y estadísticas **sin crear memoria nueva en cada fotograma**.
+
+### Animaciones procedurales sin tocar la jugabilidad
+- Las curvas de la mano y del público son **funciones puras del tiempo** (`RacketAnimation`, `CrowdMotion`), deterministas y con pruebas unitarias; los valores viven en `animation.json`.
+- Solo cambian **cómo se dibuja** la raqueta: el impacto se sigue decidiendo con su posición lógica, y el balanceo de espera se apaga en cuanto llega la bola para que la pala la encuentre exactamente.
+- Cada aficionado reacciona con su propio pequeño retraso y gira la cabeza a su ritmo, sin crear memoria nueva en cada fotograma; el público se desactiva en el perfil gráfico bajo.
 
 ### Herramientas de editor
 - `ProjectSetup` configura el proyecto automáticamente: pipeline URP, materiales, escena, ajustes de Android e iconos adaptativos.
@@ -212,7 +218,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 
 ## Pruebas
 
-**109 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
+**119 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
 
 | Área | Qué se comprueba |
 |---|---|
@@ -223,6 +229,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 | Progresión | Economía, guardado corrupto, torneo reproducible con semilla, logros |
 | Entrada e IA | Dos dedos simultáneos, prioridad de la interfaz, tiempos de reacción de la IA |
 | Interfaz | Los tamaños de texto caen siempre en los cuatro fijos, configuración inválida reparada, logotipo apilado sin solapes y centrado, fuente única con respaldo y todos los caracteres del juego (tildes, ñ, ¡ ¿) presentes en la fuente |
+| Animaciones | Cada golpe empieza y acaba en reposo, gestos distintos por tipo, celebración terminada antes del siguiente saque, cabezas dentro de sus límites, retrasos del público acotados y la ola recorriendo la grada en orden |
 | Pared de práctica | Rebote con la velocidad esperada, sin atravesar la pared a 10–40 m/s, reglas de pérdida, racha, sesión sin fin, determinismo |
 | Integración | 60 peloteos completos CPU contra CPU con todos los sistemas reales |
 
@@ -239,7 +246,7 @@ Assets/
 ├── Art/Icon/            Iconos de la app (normal, redondo y adaptativo)
 ├── Resources/
 │   ├── Audio/           28 efectos y 2 músicas originales
-│   ├── Config/          balance.json (equilibrado) y ui.json (fuente y tamaños de texto)
+│   ├── Config/          balance.json (equilibrado), ui.json (fuente y textos) y animation.json (animaciones)
 │   └── Fonts/           Jersey 10 (asset de TextMeshPro) y su licencia OFL.txt
 └── Scripts/
     ├── Core/            Arranque, servicios y flujo de la app
@@ -268,9 +275,9 @@ Assets/
 - [x] 7 poderes, 8 raquetas y 6 escenarios
 - [x] Progresión y guardado local
 - [x] Interfaz pixel art con la tipografía Jersey 10
-- [x] 109 pruebas automáticas
+- [x] Animaciones de mano (golpe según su tipo, reposo y celebración) y de público (miradas, aplausos, saltos y ola)
+- [x] 119 pruebas automáticas
 - [ ] Completar las pruebas en varios dispositivos Android
-- [ ] Animaciones más elaboradas para manos y público
 - [ ] Publicación en Google Play
 
 ---

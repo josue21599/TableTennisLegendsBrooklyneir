@@ -10,8 +10,10 @@ namespace Brooklyneir.Gameplay
     /// One player's racket. Holds the logical position (on the horizontal play plane, clamped to
     /// the player's zone), follows its target with a speed limited by the racket's response stat
     /// (and the freeze penalty), measures its own velocity for the swing, and animates the 3D
-    /// model: automatic height towards the incoming ball, forehand/backhand lean, swing on hit,
-    /// ice shell while frozen.
+    /// model: automatic height towards the incoming ball, forehand/backhand lean, a stroke that
+    /// depends on the shot type, an idle sway while waiting, a celebration after the point and the
+    /// ice shell while frozen. The animations only change how the racket is drawn: hits are
+    /// decided by the logical Position.
     /// </summary>
     public class RacketController : MonoBehaviour
     {
@@ -38,6 +40,10 @@ namespace Brooklyneir.Gameplay
         float _clock;
         float _swingTimer = -1f;
         float _swingStrength;
+        ShotType _swingType = ShotType.Normal;
+        float _celebrateTimer = -1f;
+        bool _celebrateWon;
+        float _idleWeight;
         float _lean;
         Vector3 _smoothedVelocity;
         Vector3 _strokeVelocity;
@@ -97,6 +103,8 @@ namespace Brooklyneir.Gameplay
             _magnetAccum = Vector3.zero;
             _hasCross = false;
             _swingTimer = -1f;
+            _celebrateTimer = -1f;
+            _idleWeight = 0f;
             VisualHeight = RestHeight;
             ApplyTransform(Vector3.zero);
         }
@@ -163,8 +171,24 @@ namespace Brooklyneir.Gameplay
 
         public void PlaySwing(float strength)
         {
+            PlaySwing(strength, ShotType.Normal);
+        }
+
+        /// <summary>Plays the stroke of this shot type (visual only).</summary>
+        public void PlaySwing(float strength, ShotType type)
+        {
             _swingTimer = 0f;
             _swingStrength = Mathf.Clamp01(strength);
+            _swingType = type;
+            _celebrateTimer = -1f;
+        }
+
+        /// <summary>After a point: raise and pump the racket (won) or let it drop a little (lost).</summary>
+        public void PlayCelebration(bool won)
+        {
+            _celebrateTimer = 0f;
+            _celebrateWon = won;
+            _swingTimer = -1f;
         }
 
         /// <summary>Moves the racket. <paramref name="ballPos"/> drives the automatic height.</summary>
@@ -248,29 +272,36 @@ namespace Brooklyneir.Gameplay
             float leanX = ballIncoming && _hasCross ? _cross.x : ballPos.x;
             float desiredLean = Mathf.Clamp((leanX - Position.x) * 2.2f, -1f, 1f);
             _lean = Mathf.Lerp(_lean, desiredLean, 1f - Mathf.Exp(-10f * dt));
+            AnimationConfig anim = AnimationSettings.Config;
             if (_swingTimer >= 0f)
             {
                 _swingTimer += dt;
-                if (_swingTimer > 0.3f) _swingTimer = -1f;
+                if (_swingTimer >= anim.StrokeFor(_swingType).duration) _swingTimer = -1f;
             }
+            if (_celebrateTimer >= 0f)
+            {
+                _celebrateTimer += dt;
+                if (_celebrateTimer >= RacketAnimation.CelebrationDuration(_celebrateWon, anim)) _celebrateTimer = -1f;
+            }
+            // The idle sway fades out as soon as a ball comes, so the blade meets it exactly.
+            float idleTarget = ballIncoming || _swingTimer >= 0f || _celebrateTimer >= 0f ? 0f : 1f;
+            _idleWeight = Mathf.MoveTowards(_idleWeight, idleTarget, dt * (idleTarget > _idleWeight ? 1.5f : 8f));
             ApplyTransform(_smoothedVelocity);
         }
 
         void ApplyTransform(Vector3 velocity)
         {
             float fwd = TableGeometry.ForwardSign(Player);
-            Vector3 centre = new Vector3(Position.x, VisualHeight, Position.z);
-            float swing = 0f;
-            if (_swingTimer >= 0f)
-            {
-                float k = _swingTimer / 0.3f;
-                swing = Mathf.Sin(k * Mathf.PI) * (25f + 30f * _swingStrength);
-            }
+            AnimationConfig anim = AnimationSettings.Config;
+            RacketPoseOffset o = RacketAnimation.Idle(_clock, Player * 0.37f, _idleWeight, anim);
+            if (_swingTimer >= 0f) o = o + RacketAnimation.Stroke(anim.StrokeFor(_swingType), _swingTimer, _swingStrength, anim);
+            if (_celebrateTimer >= 0f) o = o + RacketAnimation.Celebration(_celebrateWon, _celebrateTimer, anim);
+            Vector3 centre = new Vector3(Position.x, VisualHeight + o.Lift, Position.z);
             // Pitch rises with the swing (blade sweeps up and over the ball), roll follows the ball side.
             float fwdVel = velocity.z * fwd;
-            float pitch = 28f + swing + Mathf.Clamp(fwdVel * 5f, -18f, 22f);
-            float roll = -_lean * 35f * fwd;
-            float yaw = Mathf.Clamp(velocity.x * 9f, -35f, 35f) * fwd;
+            float pitch = 28f + o.Pitch + Mathf.Clamp(fwdVel * 5f, -18f, 22f);
+            float roll = (-_lean * 35f + o.Roll) * fwd;
+            float yaw = (Mathf.Clamp(velocity.x * 9f, -35f, 35f) + o.Yaw) * fwd;
             Quaternion rot = RacketModelBuilder.Pose(fwd, pitch, roll, yaw);
             transform.position = centre;
             if (_model != null)
