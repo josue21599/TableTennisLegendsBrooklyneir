@@ -31,6 +31,11 @@ namespace NUnit.Framework
         public static void GreaterOrEqual(float a, float b, string msg = null) { if (!(a >= b)) Fail("Expected " + a + " >= " + b, msg); }
         public static void Less(float a, float b, string msg = null) { if (!(a < b)) Fail("Expected " + a + " < " + b, msg); }
         public static void LessOrEqual(float a, float b, string msg = null) { if (!(a <= b)) Fail("Expected " + a + " <= " + b, msg); }
+        public static void AreEqual(double e, double a, double delta, string msg = null) { if (Math.Abs(e - a) > delta) Fail("Expected " + e + " +- " + delta + " but was " + a, msg); }
+        public static void Greater(double a, double b, string msg = null) { if (!(a > b)) Fail("Expected " + a + " > " + b, msg); }
+        public static void GreaterOrEqual(double a, double b, string msg = null) { if (!(a >= b)) Fail("Expected " + a + " >= " + b, msg); }
+        public static void Less(double a, double b, string msg = null) { if (!(a < b)) Fail("Expected " + a + " < " + b, msg); }
+        public static void LessOrEqual(double a, double b, string msg = null) { if (!(a <= b)) Fail("Expected " + a + " <= " + b, msg); }
         public static void Contains(object expected, ICollection actual, string msg = null)
         {
             foreach (object o in actual) if (Equals(o, expected)) return;

@@ -8,7 +8,7 @@
 ![C#](https://img.shields.io/badge/C%23-.NET%20Standard%202.1-512BD4?logo=csharp&logoColor=white)
 ![URP](https://img.shields.io/badge/Render-URP%2017-2C7BE5)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-137%20pasan-brightgreen)
+![Tests](https://img.shields.io/badge/tests-140%20pasan-brightgreen)
 
 </div>
 
@@ -56,7 +56,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~14.900 líneas en 78 archivos + 137 pruebas automáticas |
+| **Código** | ~14.900 líneas en 78 archivos + 140 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -218,7 +218,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 
 ## Pruebas
 
-**137 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
+**140 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
 
 | Área | Qué se comprueba |
 |---|---|
@@ -230,7 +230,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 | Entrada e IA | Dos dedos simultáneos, prioridad de la interfaz, tiempos de reacción de la IA, quién controla cada pala (dedo, CPU o red), búfer de la pala remota y ratón del editor que no se queda enganchado a un jugador |
 | Interfaz | Los tamaños de texto caen siempre en los cuatro fijos, configuración inválida reparada, logotipo apilado sin solapes y centrado, fuente única con respaldo y todos los caracteres del juego (tildes, ñ, ¡ ¿) presentes en la fuente |
 | Animaciones | Cada golpe empieza y acaba en reposo, gestos distintos por tipo, celebración terminada antes del siguiente saque, cabezas dentro de sus límites, retrasos del público acotados y la ola recorriendo la grada en orden |
-| Multijugador LAN | Protocolo binario: todos los mensajes van y vuelven exactos, los paquetes cortados o basura se rechazan sin errores, versión distinta detectada, textos recortados sin romper letras y sin crear memoria al escribir |
+| Multijugador LAN | Protocolo binario: todos los mensajes van y vuelven exactos, los paquetes cortados o basura se rechazan sin errores, versión distinta detectada, textos recortados sin romper letras y sin crear memoria al escribir; reloj compartido entre los dos móviles con retardos irregulares de wifi |
 | Pared de práctica | Rebote con la velocidad esperada, sin atravesar la pared a 10–40 m/s, reglas de pérdida, racha, sesión sin fin, determinismo |
 | Integración | 60 peloteos completos CPU contra CPU con todos los sistemas reales |
 
@@ -277,7 +277,7 @@ Assets/
 - [x] Progresión y guardado local
 - [x] Interfaz pixel art con la tipografía Jersey 10
 - [x] Animaciones de mano (golpe según su tipo, reposo y celebración) y de público (miradas, aplausos, saltos y ola)
-- [x] 137 pruebas automáticas
+- [x] 140 pruebas automáticas
 - [x] Pruebas manuales en un móvil Android real (24 de 24)
 - [ ] Publicación en Google Play
 
