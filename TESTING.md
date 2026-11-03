@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 149 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 154 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 149
+### 1.1 Pruebas automáticas: 154
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **149**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **145**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **154**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **150**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -28,10 +28,11 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `RemotePaddleBufferTests` | 4 | Pala del rival en red: interpolación, paquetes repetidos o desordenados descartados, extrapolación limitada y salto limpio tras un hueco |
 | `ShotDiagnosticsTests` | 3 | Texto de depuración del golpe: dice qué condición faltó para remate, efecto o rápido, con las mismas condiciones que la clasificación real |
 | `MousePointerTests` | 2 | Ratón del editor: un clic rápido dentro de un fotograma también se suelta, y el ratón nunca se queda enganchado a un jugador |
-| `NetProtocolTests` | 6 | Multijugador LAN: los 18 mensajes van y vuelven exactos (bit a bit), paquetes cortados, con bytes de más o basura rechazados sin excepciones, versión de protocolo distinta, textos recortados sin romper letras, un millón de paquetes sin recolección de basura, y `net.json` validado |
+| `NetProtocolTests` | 6 | Multijugador LAN: los 19 mensajes van y vuelven exactos (bit a bit), paquetes cortados, con bytes de más o basura rechazados sin excepciones, versión de protocolo distinta, textos recortados sin romper letras, un millón de paquetes sin recolección de basura, y `net.json` validado |
 | `ClockSyncTests` | 3 | Reloj compartido LAN: desfase exacto con retardo simétrico; con retardos irregulares y picos de wifi (200 partidas simuladas) el error queda por debajo de la mitad de la mejor ida y vuelta; si el desfase cambia a mitad de partida, converge sin que el tick retroceda nunca |
 | `BallSyncTests` | 4 | Pelota en LAN: dos simulaciones con una diferencia de 1e-4 m/s divergen durante el vuelo y quedan idénticas bit a bit tras el siguiente golpe; el mismo estado da la misma pelota a 60, 90 y 120 Hz; el adelanto deja la pelota donde la tiene el otro móvil, con sus botes, y el dibujo se suaviza; la ralentización por ticks coincide en los dos móviles |
 | `HostArbiterTests` | 5 | Árbitro del anfitrión en LAN: un golpe del invitado dentro del margen anula el punto pendiente; uno tardío no; un golpe posterior al segundo bote (o anterior al primero) se rechaza; la copia del árbitro lo restaura todo y los puntos en el campo del anfitrión son inmediatos; en 50 partidos el marcador del invitado, a través del protocolo real, es siempre el del anfitrión |
+| `NetSessionTests` | 5 | Dos móviles simulados (anfitrión a 60 fps, invitado a 90 fps, relojes distintos) conectados por un enlace falso con 30 ms de latencia, ±15 ms de variación y un 5 % de pérdida, usando la misma `NetMatchSession` que el juego: un partido completo termina con el mismo marcador y sin ningún punto leído distinto; con poderes (4 partidos, con ralentización y salvadas de escudo) terminan además con el mismo estado de poderes; un corte de 2 s pausa a los dos, anula el punto y la partida sigue; un corte más largo que el plazo de reconexión anula la partida en los dos; tras una pausa, `ResumeAt` reanuda a los dos en el mismo tick y con la misma pelota bit a bit |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 

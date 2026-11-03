@@ -23,6 +23,7 @@ namespace Brooklyneir.Tests
         {
             NetBallState b = new NetBallState();
             b.Position = new Vector3(-0.7f * k, 0.93f, 1.37f); b.Velocity = new Vector3(1.5f, 2.25f, -9.75f * k); b.Spin = new Vector3(-3.5f, 1e-7f, 0f); b.Active = true;
+            b.BasedOn = (uint)(4000000000u + (uint)(k * 1000f));
             return b;
         }
 
@@ -31,7 +32,7 @@ namespace Brooklyneir.Tests
 
         static void SameBall(NetBallState a, NetBallState b)
         {
-            Assert.IsTrue(Exact(a.Position, b.Position) && Exact(a.Velocity, b.Velocity) && Exact(a.Spin, b.Spin) && a.Active == b.Active, "ball state must be bit-exact");
+            Assert.IsTrue(Exact(a.Position, b.Position) && Exact(a.Velocity, b.Velocity) && Exact(a.Spin, b.Spin) && a.Active == b.Active && a.BasedOn == b.BasedOn, "ball state must be bit-exact");
         }
 
         /// <summary>One sample of every message, written into the writer; returns its type.</summary>
@@ -52,7 +53,7 @@ namespace Brooklyneir.Tests
                 case 6: NetProtocol.Write(_w, new PaddleMsg { Seq = uint.MaxValue, Tick = 0, PosX = -0.62f, PosZ = -1.95f, TargetX = float.MaxValue, TargetZ = float.MinValue }); return MsgType.Paddle;
                 case 7: NetProtocol.Write(_w, MsgType.Serve, new BallLaunchMsg { Tick = 240, Player = 0, Ball = Ball(1f), Shot = ShotType.Serve, Strength = 0.3f }); return MsgType.Serve;
                 case 8: NetProtocol.Write(_w, new HitBeginMsg { Tick = 777, Player = 1, Contact = new Vector3(0.1f, 0.95f, 1.9f) }); return MsgType.HitBegin;
-                case 9: NetProtocol.Write(_w, MsgType.HitLaunch, new BallLaunchMsg { Tick = 778, Player = 1, Ball = Ball(-1f), Shot = ShotType.Smash, Strength = 0.9f }); return MsgType.HitLaunch;
+                case 9: NetProtocol.Write(_w, MsgType.HitLaunch, new BallLaunchMsg { Tick = 778, Player = 1, Ball = Ball(-1f), Shot = ShotType.Smash, Strength = 0.9f, ConsumedCurve = true, ConsumedSpecial = true }); return MsgType.HitLaunch;
                 case 10: NetProtocol.Write(_w, new PowerRequestMsg { Player = 1, Action = PowerAction.ArmSpecial }); return MsgType.PowerRequest;
                 case 11:
                 {
@@ -64,11 +65,12 @@ namespace Brooklyneir.Tests
                 case 14: NetProtocol.Write(_w, new PauseMsg { Player = 1, Reason = PauseReason.Background, Tick = 5000, Ball = Ball(1f) }); return MsgType.Pause;
                 case 15: NetProtocol.Write(_w, new ResumeAtMsg { Tick = 5720, Ball = Ball(1f) }); return MsgType.ResumeAt;
                 case 16: NetProtocol.Write(_w, new ByeMsg { Reason = ByeReason.Quit }); return MsgType.Bye;
+                case 17: NetProtocol.Write(_w, new RallyVoidMsg { ResumeTick = 9999, Server = 1 }); return MsgType.RallyVoid;
                 default: NetProtocol.Write(_w, new OrbStateMsg { Tick = 42, Active = true, Position = new Vector3(0.3f, 1.1f, -0.2f), Type = (sbyte)PowerUpType.Random }); return MsgType.OrbState;
             }
         }
 
-        const int Samples = 18;
+        const int Samples = 19;
 
         /// <summary>Reads the current packet as the given type; returns false if it does not parse.</summary>
         bool ReadAny(MsgType t)
@@ -93,6 +95,7 @@ namespace Brooklyneir.Tests
                 case MsgType.ResumeAt: { ResumeAtMsg m; return NetProtocol.TryRead(r, out m); }
                 case MsgType.Bye: { ByeMsg m; return NetProtocol.TryRead(r, out m); }
                 case MsgType.OrbState: { OrbStateMsg m; return NetProtocol.TryRead(r, out m); }
+                case MsgType.RallyVoid: { RallyVoidMsg m; return NetProtocol.TryRead(r, out m); }
                 default: return false;
             }
         }
@@ -118,6 +121,9 @@ namespace Brooklyneir.Tests
             Assert.IsTrue(p.Seq == uint.MaxValue && p.PosX == -0.62f && p.TargetX == float.MaxValue && p.TargetZ == float.MinValue);
             BallLaunchMsg hit; WriteSample(9); Assert.IsTrue(NetProtocol.TryRead(Read(), MsgType.HitLaunch, out hit));
             SameBall(Ball(-1f), hit.Ball); Assert.IsTrue(hit.Tick == 778 && hit.Player == 1 && hit.Shot == ShotType.Smash && hit.Strength == 0.9f);
+            Assert.IsTrue(hit.ConsumedCurve && !hit.ConsumedSuperSmash && hit.ConsumedSpecial, "used-up powers travel with the hit");
+            RallyVoidMsg rv; WriteSample(17); Assert.IsTrue(NetProtocol.TryRead(Read(), out rv));
+            Assert.IsTrue(rv.ResumeTick == 9999 && rv.Server == 1);
             PowerStateMsg ps; WriteSample(11); Assert.IsTrue(NetProtocol.TryRead(Read(), out ps));
             PlayerPowerState back = new PlayerPowerState();
             ps.P0.ApplyTo(back);

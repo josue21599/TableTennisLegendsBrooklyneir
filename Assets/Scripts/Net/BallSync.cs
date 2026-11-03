@@ -24,6 +24,9 @@ namespace Brooklyneir.Net
         Vector3 _prev;
         Vector3 _visualOffset;
 
+        /// <summary>Tick of the launch the current trajectory comes from (see NetBallState.BasedOn).</summary>
+        public uint LastLaunchTick { get; private set; }
+
         /// <summary>Tick the simulation state corresponds to.</summary>
         public uint Tick { get; private set; }
         public int TickRate { get; private set; }
@@ -82,6 +85,7 @@ namespace Brooklyneir.Net
         public int Apply(NetBallState state, uint stateTick, uint nowTick, float scaleTowardP0, float scaleTowardP1, List<BallContactEvent> events)
         {
             Vector3 drawnBefore = Sim.Position + _visualOffset;
+            LastLaunchTick = state.BasedOn;
             if (state.Active) Sim.Launch(state.Position, state.Velocity, state.Spin);
             else Sim.Hold(state.Position);
             Tick = stateTick;
@@ -100,6 +104,15 @@ namespace Brooklyneir.Net
             s.Velocity = Sim.Velocity;
             s.Spin = Sim.SpinAccel;
             s.Active = Sim.Active;
+            s.BasedOn = LastLaunchTick;
+            return s;
+        }
+
+        /// <summary>This phone launches the ball (serve, hit, shield save) at tick: returns the state to send.</summary>
+        public NetBallState LocalLaunch(Vector3 position, Vector3 velocity, Vector3 spin, uint tick, float scaleTowardP0, float scaleTowardP1)
+        {
+            NetBallState s = new NetBallState { Position = position, Velocity = velocity, Spin = new Vector3(spin.x, spin.y, 0f), Active = true, BasedOn = tick };
+            Apply(s, tick, tick, scaleTowardP0, scaleTowardP1, null);
             return s;
         }
 

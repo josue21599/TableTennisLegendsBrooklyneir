@@ -66,6 +66,30 @@ namespace Brooklyneir.Net
             return true;
         }
 
+        /// <summary>A shield saved the ball for this player (counts as its hit; decided by the host's ball).</summary>
+        public bool ShieldHit(int player)
+        {
+            if (PointConfirmed || PointPending || !Referee.CanHit(player)) return false;
+            Referee.RegisterHit(player);
+            BeginShot();
+            return true;
+        }
+
+        /// <summary>A pause froze the match for this many ticks: a pending point keeps its remaining grace.</summary>
+        public void ShiftPending(uint ticks)
+        {
+            if (PointPending) PendingDeadline += ticks;
+        }
+
+        /// <summary>The rally in play does not count (reconnection): nothing pending, nothing confirmed.</summary>
+        public void Abort()
+        {
+            Referee.Abort();
+            PointPending = false;
+            PointConfirmed = false;
+            _historyCount = 0;
+        }
+
         public void OnTableBounce(int side, uint tick) { Apply(0, side, false, tick); }
         public void OnNetContact(uint tick) { Apply(1, 0, false, tick); }
         public void OnBallDead(bool wideOfTable, uint tick) { Apply(2, 0, wideOfTable, tick); }

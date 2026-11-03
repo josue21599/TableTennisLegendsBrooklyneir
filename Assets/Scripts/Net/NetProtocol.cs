@@ -11,7 +11,7 @@ namespace Brooklyneir.Net
     {
         None = 0, Hello = 1, Welcome = 2, Reject = 3, MatchSetup = 4, Ping = 5, Pong = 6, Paddle = 7,
         Serve = 8, HitBegin = 9, HitLaunch = 10, PowerRequest = 11, PowerState = 12, ShieldSave = 13,
-        PointResult = 14, Pause = 15, ResumeAt = 16, Bye = 17, OrbState = 18
+        PointResult = 14, Pause = 15, ResumeAt = 16, Bye = 17, OrbState = 18, RallyVoid = 19
     }
 
     public enum RejectReason : byte { None = 0, ProtocolMismatch = 1, AppVersionMismatch = 2, BalanceMismatch = 3, Full = 4, BadSession = 5 }
@@ -173,17 +173,23 @@ namespace Brooklyneir.Net
 
     // ------------------------------------------------------------------ payloads
 
-    /// <summary>Full ball state sent with every serve, hit, shield save, pause and resume.</summary>
+    /// <summary>
+    /// Full ball state sent with every serve, hit, shield save, pause and resume. BasedOn is the
+    /// tick of the launch (serve, hit or shield save) this trajectory comes from: a phone ignores
+    /// a state based on a launch older than its own latest one, so a message computed before the
+    /// other phone heard about a hit can never erase that hit.
+    /// </summary>
     public struct NetBallState
     {
         public Vector3 Position, Velocity, Spin;
         public bool Active;
+        public uint BasedOn;
 
-        public void Write(NetWriter w) { w.Vec3(Position); w.Vec3(Velocity); w.Vec3(Spin); w.Bool(Active); }
+        public void Write(NetWriter w) { w.Vec3(Position); w.Vec3(Velocity); w.Vec3(Spin); w.Bool(Active); w.U32(BasedOn); }
         public static NetBallState Read(NetReader r)
         {
             NetBallState b = new NetBallState();
-            b.Position = r.Vec3(); b.Velocity = r.Vec3(); b.Spin = r.Vec3(); b.Active = r.Bool();
+            b.Position = r.Vec3(); b.Velocity = r.Vec3(); b.Spin = r.Vec3(); b.Active = r.Bool(); b.BasedOn = r.U32();
             return b;
         }
     }
@@ -273,8 +279,12 @@ namespace Brooklyneir.Net
     public struct PongMsg { public double T0, T1; }
     public struct PaddleMsg { public uint Seq, Tick; public float PosX, PosZ, TargetX, TargetZ; }
 
-    /// <summary>Serve and HitLaunch: the ball state right after the racket, with its tick.</summary>
-    public struct BallLaunchMsg { public uint Tick; public byte Player; public NetBallState Ball; public ShotType Shot; public float Strength; }
+    /// <summary>Serve and HitLaunch: the ball state right after the racket, with its tick, and the armed powers it used up.</summary>
+    public struct BallLaunchMsg
+    {
+        public uint Tick; public byte Player; public NetBallState Ball; public ShotType Shot; public float Strength;
+        public bool ConsumedCurve, ConsumedSuperSmash, ConsumedSpecial;
+    }
     public struct HitBeginMsg { public uint Tick; public byte Player; public Vector3 Contact; }
     public struct PowerRequestMsg { public byte Player; public PowerAction Action; }
     public struct PowerStateMsg { public uint Tick; public NetPowerPlayer P0, P1; public bool HasBall; public NetBallState Ball; }
@@ -290,6 +300,8 @@ namespace Brooklyneir.Net
     public struct PauseMsg { public byte Player; public PauseReason Reason; public uint Tick; public NetBallState Ball; }
     public struct ResumeAtMsg { public uint Tick; public NetBallState Ball; }
     public struct ByeMsg { public ByeReason Reason; }
+    /// <summary>After a reconnection the rally in play does not count: both resume at ResumeTick with this server.</summary>
+    public struct RallyVoidMsg { public uint ResumeTick; public byte Server; }
 
     /// <summary>
     /// The LAN protocol: every message as a binary packet whose first byte is its MsgType. Write*
@@ -324,7 +336,7 @@ namespace Brooklyneir.Net
         {
             if (buf == null || len < 1) return MsgType.None;
             byte t = buf[0];
-            return t >= 1 && t <= (byte)MsgType.OrbState ? (MsgType)t : MsgType.None;
+            return t >= 1 && t <= (byte)MsgType.RallyVoid ? (MsgType)t : MsgType.None;
         }
 
         static bool Begin(NetReader r, MsgType expected)
@@ -417,6 +429,7 @@ namespace Brooklyneir.Net
         {
             w.Reset(); w.U8((byte)type);
             w.U32(m.Tick); w.U8(m.Player); m.Ball.Write(w); w.U8((byte)m.Shot); w.F32(m.Strength);
+            w.U8((byte)((m.ConsumedCurve ? 1 : 0) | (m.ConsumedSuperSmash ? 2 : 0) | (m.ConsumedSpecial ? 4 : 0)));
         }
 
         public static bool TryRead(NetReader r, MsgType type, out BallLaunchMsg m)
@@ -424,6 +437,8 @@ namespace Brooklyneir.Net
             m = new BallLaunchMsg();
             if ((type != MsgType.Serve && type != MsgType.HitLaunch) || !Begin(r, type)) return false;
             m.Tick = r.U32(); m.Player = r.U8(); m.Ball = NetBallState.Read(r); m.Shot = (ShotType)r.U8(); m.Strength = r.F32();
+            byte f = r.U8();
+            m.ConsumedCurve = (f & 1) != 0; m.ConsumedSuperSmash = (f & 2) != 0; m.ConsumedSpecial = (f & 4) != 0;
             return End(r) && m.Player <= 1;
         }
 
@@ -518,6 +533,15 @@ namespace Brooklyneir.Net
             if (!Begin(r, MsgType.ResumeAt)) return false;
             m.Tick = r.U32(); m.Ball = NetBallState.Read(r);
             return End(r);
+        }
+
+        public static void Write(NetWriter w, RallyVoidMsg m) { w.Reset(); w.U8((byte)MsgType.RallyVoid); w.U32(m.ResumeTick); w.U8(m.Server); }
+        public static bool TryRead(NetReader r, out RallyVoidMsg m)
+        {
+            m = new RallyVoidMsg();
+            if (!Begin(r, MsgType.RallyVoid)) return false;
+            m.ResumeTick = r.U32(); m.Server = r.U8();
+            return End(r) && m.Server <= 1;
         }
 
         public static void Write(NetWriter w, ByeMsg m) { w.Reset(); w.U8((byte)MsgType.Bye); w.U8((byte)m.Reason); }

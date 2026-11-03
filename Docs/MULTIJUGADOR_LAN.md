@@ -81,14 +81,24 @@ Aprobada el 3 de noviembre de 2026. Móviles para la prueba final: **OPPO Reno11
 
 | Paso | Contenido | Pruebas nuevas | Unity / fuera |
 |---|---|---|---|
-| 1 ✅ | `NetProtocol` (18 tipos de mensaje, incluido `OrbState` para los orbes de poder) y `NetConfig` + `net.json` | 6 | 137 / 133 |
+| 1 ✅ | `NetProtocol` (19 tipos de mensaje: en el paso 5 se añadieron `RallyVoid` y los indicadores de poderes consumidos en `HitLaunch`) y `NetConfig` + `net.json` | 6 | 137 / 133 |
 | 2 ✅ | `ClockSync`: reloj compartido en ticks | 3 | 140 / 136 |
 | 3 ✅ | `BallSync`: física en ticks fijos, aplicar estado con adelanto, ralentización por ticks | 4 | 144 / 140 |
 | 4 ✅ | `HostArbiter` + `RallyReferee.CopyFrom` | 5 | 149 / 145 |
-| 5 | `NetMatchSession` + `LoopbackLink`: dos móviles simulados con latencia y pérdidas, **con poderes** (ralentización y escudo incluidos; mismo marcador y mismo estado de poderes en los dos), corte corto, corte largo y **pausa con `ResumeAt`** (mismo tick y misma foto de la pelota). Aquí va la lógica de `PowerRequest`/`PowerState` y `OrbState` | 5 | 154 / 150 |
+| 5 ✅ | `NetMatchSession` + `LoopbackLink`: dos móviles simulados con latencia y pérdidas, **con poderes** (ralentización y escudo incluidos; mismo marcador y mismo estado de poderes en los dos), corte corto, corte largo y **pausa con `ResumeAt`** (mismo tick y misma foto de la pelota). Aquí va la lógica de `PowerRequest`/`PowerState` y `OrbState` | 5 | 154 / 150 |
 | 6 | `ViewMapping`, cámara del invitado girada 180°, pantalla completa para el jugador local, HUD de un marco | 3 | 157 / 153 |
 | 7 | Unity Transport, `SessionStateMachine`, `NetMatchBridge`, conexión de poderes y orbes con el juego, segundo plano, y **`LanRewards`** (monedas y logros con el resultado del anfitrión; anulada no da nada; abandono = victoria del que se queda). Antes: confirmar la compatibilidad de Multiplayer Play Mode y `com.unity.transport` 2.x con Unity 6.6 | 6 | 163 / 159 |
 | 8 | Búsqueda (broadcast general y de subred, IP y máscara con `NetworkInterface` de Java, también en la zona wifi compartida), pantallas LAN, permisos de Android, README | 2 | 165 / 161 |
+
+**Decisiones tomadas en el paso 5 que el paso 7 debe respetar:**
+- **`BasedOn` en cada estado de pelota:** un móvil ignora un estado basado en un lanzamiento anterior al suyo, para que un mensaje calculado antes de conocer un golpe no lo borre. La foto de la pausa es la excepción (decide el anfitrión).
+- **`StartTick`:** nadie saca hasta que el reloj del invitado está sincronizado y se llega al tick de inicio, que viaja en `MatchSetup`. Sin esto, el primer saque del invitado llegaba con el reloj sin sincronizar.
+- **Poderes antes que el punto:** el anfitrión envía `PowerState` antes de `PointResult`, porque el último punto cierra la sesión.
+- **`RallyVoid`:** tras una reconexión, el anfitrión anula el punto en juego y los dos reanudan en el mismo tick con el mismo sacador.
+- **`HitLaunch` lleva los poderes consumidos** (curva, súper remate, especial), para que el anfitrión los descuente cuando golpea el invitado.
+- **Escudo:** lo decide el anfitrión con su pelota, igual que `MatchController` (segundo bote y muro detrás del jugador), y lo envía con `ShieldSave`.
+- **`LoopbackLink`** vive en la carpeta de pruebas: no entra en el juego.
+- Comprobación extra fuera de las pruebas: 60 partidos simulados (30 con poderes) con semillas distintas terminaron todos con el mismo marcador y 0 puntos leídos de forma distinta.
 
 
 Archivos nuevos: `Net/NetProtocol`, `Net/ClockSync`, `Net/BallSync`, `Net/HostArbiter`, `Net/NetConfig` + `net.json`, `Net/LanTransport`, `Net/LanDiscovery`, `Net/AndroidMulticastLock`, `Net/NetSession`, `Net/NetMatchBridge`, `UI/LanScreens`, `Editor/AndroidNetPermissions`. Cambios en `MatchController`, `MatchHud` (ping y "esperando al rival"), `CameraDirector`, menú, `Packages/manifest.json`, recompensas, README y TESTING.
