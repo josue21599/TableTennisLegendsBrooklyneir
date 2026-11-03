@@ -36,4 +36,12 @@ namespace NUnit.Framework
             Fail("Collection does not contain " + expected, msg);
         }
     }
+    public static class StringAssert
+    {
+        public static void Contains(string expected, string actual, string msg = null)
+        {
+            if (actual == null || actual.IndexOf(expected, StringComparison.Ordinal) < 0)
+                throw new AssertionException("Expected string containing \"" + expected + "\" but was \"" + actual + "\"" + (msg != null ? " :: " + msg : ""));
+        }
+    }
 }

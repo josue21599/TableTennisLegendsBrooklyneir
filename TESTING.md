@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 119 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 131 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 119
+### 1.1 Pruebas automáticas: 131
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **119**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **115**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **131**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **127**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -24,6 +24,10 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `UiConfigTests` | 4 | Tamaños de texto fijos, configuración inválida reparada y logotipo apilado con las métricas de la fuente |
 | `UiFontTests` | 4 | Solo en Unity: fuente única, respaldo si falta y todos los caracteres del juego (tildes, ñ, ¡ ¿) en la fuente |
 | `AnimationTests` | 10 | Golpes de la mano según su tipo, reposo, celebración antes del siguiente saque, miradas, reacciones y ola del público |
+| `ControlSetupTests` | 3 | Quién controla cada pala: los mismos controles que antes en todos los modos, demo y entrenamiento, y jugador en red solo en partida rápida y personalizada |
+| `RemotePaddleBufferTests` | 4 | Pala del rival en red: interpolación, paquetes repetidos o desordenados descartados, extrapolación limitada y salto limpio tras un hueco |
+| `ShotDiagnosticsTests` | 3 | Texto de depuración del golpe: dice qué condición faltó para remate, efecto o rápido, con las mismas condiciones que la clasificación real |
+| `MousePointerTests` | 2 | Ratón del editor: un clic rápido dentro de un fotograma también se suelta, y el ratón nunca se queda enganchado a un jugador |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 

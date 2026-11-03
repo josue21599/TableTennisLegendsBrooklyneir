@@ -42,7 +42,10 @@ namespace Brooklyneir.Gameplay
         public PowerUpSystem Powers { get; private set; }
         public RacketController[] Rackets { get; private set; }
         public bool Paused { get; private set; }
+        /// <summary>A finger on this phone controls this racket (derived from Controls).</summary>
         public bool[] Human { get; private set; }
+        /// <summary>Who controls each racket: finger, CPU, network or nobody.</summary>
+        public PlayerControl[] Controls { get; private set; }
         public int RallyHits { get; private set; }
         public float MatchClock { get; private set; }
         public bool IsDemo { get { return Config != null && Config.mode == GameMode.Demo; } }
@@ -80,7 +83,8 @@ namespace Brooklyneir.Gameplay
         LandingMarker _targetRing;
         ShieldView[] _shields;
         PowerOrbView _orb;
-        AIPlayer[] _ai = new AIPlayer[2];
+        readonly PaddleDriver[] _drivers = { new NoPaddleDriver(), new NoPaddleDriver() };
+        int _remotePlayer = -1;
         TouchInputController _input;
         CameraDirector _camera;
         VfxSystem _vfx;
@@ -112,6 +116,9 @@ namespace Brooklyneir.Gameplay
             _rng = new GameRandom(Environment.TickCount);
             _sim = new BallSimulation(cfg.physics);
             _scratch = new BallSimulation(cfg.physics);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (GetComponent<Brooklyneir.UI.ShotDebugOverlay>() == null) gameObject.AddComponent<Brooklyneir.UI.ShotDebugOverlay>();
+#endif
             _shots = new ShotModel(cfg, _rng);
             Referee = new RallyReferee();
             Powers = new PowerUpSystem(cfg.powerUps, _rng);
@@ -158,6 +165,7 @@ namespace Brooklyneir.Gameplay
             _orb = orb.AddComponent<PowerOrbView>();
             _orb.Init(cam.Cam);
             Human = new bool[2];
+            Controls = new PlayerControl[2];
             Phase = MatchPhase.Inactive;
         }
 
@@ -165,19 +173,29 @@ namespace Brooklyneir.Gameplay
 
         public void StartMatch(MatchConfig config)
         {
+            StartMatch(config, -1);
+        }
+
+        /// <param name="remotePlayer">Player on the other phone (0 or 1), or -1. Only quick and custom matches accept it.</param>
+        public void StartMatch(MatchConfig config, int remotePlayer)
+        {
             Abort();
             config.Validate();
             Config = config;
             _sfxScale = IsDemo ? 0.25f : 1f;
-            Human[0] = !config.player1IsAI && config.mode != GameMode.Demo;
-            Human[1] = !config.player2IsAI && config.mode != GameMode.Demo && config.mode != GameMode.Training;
+            _remotePlayer = ControlSetup.AllowsRemote(config.mode) ? remotePlayer : -1;
+            PlayerControl[] controls = ControlSetup.For(config, remotePlayer);
+            for (int p = 0; p < 2; p++)
+            {
+                Controls[p] = controls[p];
+                Human[p] = ControlSetup.IsLocal(controls[p]);
+            }
 
             SetupRacket(0, config.racketP1);
             SetupRacket(1, config.racketP2);
             Rackets[1].SetVisible(!IsTraining);
 
-            _ai[0] = Human[0] ? null : new AIPlayer(0, DifficultyTuning(IsDemo ? AIDifficulty.Hard : config.aiDifficulty), _cfg, Rackets[0], _rng);
-            _ai[1] = (Human[1] || IsTraining) ? null : new AIPlayer(1, DifficultyTuning(IsDemo ? AIDifficulty.Hard : config.aiDifficulty), _cfg, Rackets[1], _rng);
+            for (int p = 0; p < 2; p++) _drivers[p] = CreateDriver(p, config);
 
             var settings = Game.Save != null ? Game.Save.Data.settings : null;
             Rackets[0].Assist = Human[0] && settings != null && settings.assistP1;
@@ -317,8 +335,24 @@ namespace Brooklyneir.Gameplay
             _hitPending = false;
             _sim.Wall = null;
             _practiceRef = null;
-            _ai[0] = _ai[1] = null;
+            _drivers[0] = new NoPaddleDriver();
+            _drivers[1] = new NoPaddleDriver();
         }
+
+        PaddleDriver CreateDriver(int p, MatchConfig config)
+        {
+            switch (Controls[p])
+            {
+                case PlayerControl.Local: return new TouchPaddleDriver(Rackets[p]);
+                case PlayerControl.Remote: return new RemotePaddleDriver(Rackets[p]);
+                case PlayerControl.Cpu:
+                    return new CpuPaddleDriver(new AIPlayer(p, DifficultyTuning(IsDemo ? AIDifficulty.Hard : config.aiDifficulty), _cfg, Rackets[p], _rng));
+                default: return new NoPaddleDriver();
+            }
+        }
+
+        /// <summary>Driver of a racket (for the network bridge in phase 2 and for diagnostics).</summary>
+        public PaddleDriver Driver(int player) { return _drivers[player]; }
 
         public void SetPaused(bool paused)
         {
@@ -335,7 +369,7 @@ namespace Brooklyneir.Gameplay
             if (Config == null) return;
             if (IsPracticeWall) StartPracticeWall(Config.racketP1);
             else if (IsTraining && _drill != null) StartTraining(_drill, Config.racketP1);
-            else StartMatch(Config.Clone());
+            else StartMatch(Config.Clone(), _remotePlayer);
         }
 
         // =================================================================== frame
@@ -429,12 +463,12 @@ namespace Brooklyneir.Gameplay
         {
             for (int p = 0; p < 2; p++)
             {
-                AIPlayer ai = _ai[p];
-                if (ai == null) continue;
+                PaddleDriver d = _drivers[p];
+                if (d.Kind == PlayerControl.Local || d.Kind == PlayerControl.None) continue;
                 bool coming = _ballInPlay && !Referee.RallyOver && Referee.Receiver == p;
-                ai.Tick(dt, coming);
-                if (Config.powerUpsEnabled && Phase == MatchPhase.Rally) ai.ConsiderPowers(Powers, dt, coming);
-                if (Phase == MatchPhase.ServeWait && _server == p && ai.TickServe(dt)) Serve(p);
+                d.Tick(dt, coming);
+                if (Config.powerUpsEnabled && Phase == MatchPhase.Rally) d.ConsiderPowers(Powers, dt, coming);
+                if (Phase == MatchPhase.ServeWait && _server == p && d.TickServe(dt)) Serve(p);
             }
         }
 
@@ -450,9 +484,9 @@ namespace Brooklyneir.Gameplay
             _sim.Hold(HeldBallPosition(server));
             _ballView.ClearTrail();
             _marker.Hide();
-            for (int p = 0; p < 2; p++) if (_ai[p] != null) _ai[p].ResetForPoint();
-            if (_ai[server] != null) _ai[server].BeginServeWait();
-            else if (!IsDemo) Say(server, "TOCA PARA SACAR", Color.white);
+            for (int p = 0; p < 2; p++) _drivers[p].ResetForPoint();
+            if (_drivers[server].Kind == PlayerControl.Cpu) _drivers[server].BeginServeWait();
+            else if (!IsDemo && _drivers[server].Kind != PlayerControl.Remote) Say(server, "TOCA PARA SACAR", Color.white);
             RallyHits = 0;
         }
 
@@ -602,7 +636,7 @@ namespace Brooklyneir.Gameplay
         {
             int r = IsPracticeWall ? PracticeWallReferee.PlayerSide : Referee.Receiver;
             bool canHit = IsPracticeWall ? _practiceRef.CanHit : Referee.CanHit(r);
-            if (!canHit || !Rackets[r].gameObject.activeSelf) return false;
+            if (!canHit || !Rackets[r].gameObject.activeSelf || !_drivers[r].DetectsHitsLocally) return false;
             Vector3 r0 = Vector3.Lerp(Rackets[r].PreviousPosition, Rackets[r].Position, _stepFrom);
             Vector3 r1 = Vector3.Lerp(Rackets[r].PreviousPosition, Rackets[r].Position, _stepTo);
             float d0 = before.z - r0.z, d1 = after.z - r1.z;
@@ -633,7 +667,7 @@ namespace Brooklyneir.Gameplay
             ctx.CurveArmed = s.CurveArmed;
             ctx.FireActive = s.FireActive && !s.FireBurning;
             ctx.SwingMultiplier = Powers.SwingMultiplier(p);
-            ctx.NoiseMultiplier = _ai[p] != null ? _ai[p].NoiseMultiplier : _cfg.shots.humanNoiseMultiplier;
+            ctx.NoiseMultiplier = _drivers[p].NoiseMultiplier(_cfg.shots.humanNoiseMultiplier);
             return ctx;
         }
 
@@ -645,7 +679,7 @@ namespace Brooklyneir.Gameplay
         void BeginHit(int p, Vector3 contact, float offset)
         {
             float dwell = _cfg.racket.hitDwellSeconds;
-            if (_ai[p] != null || !Human[p] || dwell <= 0f)
+            if (!_drivers[p].UsesHitDwell || dwell <= 0f)
             {
                 ExecuteHit(p, contact, offset, false, Vector3.zero);
                 return;
@@ -680,10 +714,11 @@ namespace Brooklyneir.Gameplay
 
         void ExecuteHit(int p, Vector3 contact, float offset, bool useSwing, Vector3 swing)
         {
-            if (_ai[p] != null) _ai[p].DecideSwing(contact.y - TableGeometry.TopY);
+            _drivers[p].PrepareSwing(contact.y - TableGeometry.TopY);
             ShotContext ctx = BaseContext(p, contact, offset);
             if (useSwing) ctx.RacketVelocity = swing;
             ShotResult res = _shots.Compute(ctx);
+            DebugShot(p, ctx, res);
             if (IsPracticeWall) _practiceRef.OnRacketHit();
             else Referee.RegisterHit(p);
             Powers.OnShot(p, res.ConsumedCurve, res.ConsumedSuperSmash, res.ConsumedSpecial);
@@ -720,6 +755,20 @@ namespace Brooklyneir.Gameplay
             }
         }
 
+        /// <summary>Editor / development builds only: the hit explained on screen and in the Console.</summary>
+        [System.Diagnostics.Conditional("UNITY_EDITOR"), System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void DebugShot(int p, ShotContext ctx, ShotResult res)
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (IsDemo) return;
+            float fwd, lat;
+            _shots.Classify(ctx, out fwd, out lat);
+            string who = Controls[p] == PlayerControl.Cpu ? " (CPU)" : "";
+            if (Controls[p] != PlayerControl.Cpu && Rackets[p].UsesSyntheticSwing) who += " ¡GESTO DE CPU PEGADO!";
+            Brooklyneir.UI.ShotDebugOverlay.Push(ShotDiagnostics.Describe(p, res.Type, fwd, lat, ctx.ContactPoint.y - TableGeometry.TopY, _cfg.shots) + who);
+#endif
+        }
+
         void Launch(int hitter, Vector3 from, ShotResult res)
         {
             _sim.Launch(from, res.Velocity, res.SpinAccel);
@@ -733,7 +782,7 @@ namespace Brooklyneir.Gameplay
             else
                 _marker.Hide();
             int other = 1 - hitter;
-            if (_ai[other] != null) _ai[other].OnOpponentShot(_sim);
+            _drivers[other].OnOpponentShot(_sim);
         }
 
         void CheckShieldWall(Vector3 before, Vector3 after)

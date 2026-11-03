@@ -211,9 +211,7 @@ namespace Brooklyneir.Controls
             if (mouse != null)
             {
                 Vector2 mp = mouse.position.ReadValue();
-                if (mouse.leftButton.wasPressedThisFrame) HandleTouch(MouseFinger, Phase.Began, mp);
-                else if (mouse.leftButton.wasReleasedThisFrame) HandleTouch(MouseFinger, Phase.Ended, mp);
-                else if (mouse.leftButton.isPressed) HandleTouch(MouseFinger, Phase.Moved, mp);
+                HandleMouse(mouse.leftButton.wasPressedThisFrame, mouse.leftButton.wasReleasedThisFrame, mouse.leftButton.isPressed, mp);
             }
             Keyboard kb = Keyboard.current;
             if (kb == null) return;
@@ -223,9 +221,7 @@ namespace Brooklyneir.Controls
             bool serve0 = kb.spaceKey.wasPressedThisFrame, serve1 = kb.enterKey.wasPressedThisFrame;
 #else
             Vector2 mp = Input.mousePosition;
-            if (Input.GetMouseButtonDown(0)) HandleTouch(MouseFinger, Phase.Began, mp);
-            else if (Input.GetMouseButtonUp(0)) HandleTouch(MouseFinger, Phase.Ended, mp);
-            else if (Input.GetMouseButton(0)) HandleTouch(MouseFinger, Phase.Moved, mp);
+            HandleMouse(Input.GetMouseButtonDown(0), Input.GetMouseButtonUp(0), Input.GetMouseButton(0), mp);
             Vector3 d0 = new Vector3(Axis(KeyCode.DownArrow, KeyCode.UpArrow), 0f, Axis(KeyCode.RightArrow, KeyCode.LeftArrow));
             Vector3 d1 = new Vector3(Axis(KeyCode.S, KeyCode.W), 0f, Axis(KeyCode.D, KeyCode.A));
             bool serve0 = Input.GetKeyDown(KeyCode.Space), serve1 = Input.GetKeyDown(KeyCode.Return);
@@ -240,6 +236,19 @@ namespace Brooklyneir.Controls
                 if (d1.sqrMagnitude > 0f) _rackets[1].MoveTargetBy(d1 * keySpeed * dt);
                 if (serve1 && ServeRequested != null) ServeRequested(1);
             }
+        }
+
+        /// <summary>
+        /// Mouse as one more finger. A quick click pressed and released in the same frame sends
+        /// both phases (before, the release was lost and the mouse stayed stuck to the player who
+        /// had it, so in two-player mode clicking the left half kept moving player 2).
+        /// </summary>
+        void HandleMouse(bool pressed, bool released, bool held, Vector2 mp)
+        {
+            MousePointer.Phases ph = MousePointer.FromButton(pressed, released, held, _router.OwnerOf(MouseFinger) >= 0);
+            if (ph.Began) HandleTouch(MouseFinger, Phase.Began, mp);
+            if (ph.Moved) HandleTouch(MouseFinger, Phase.Moved, mp);
+            if (ph.Ended) HandleTouch(MouseFinger, Phase.Ended, mp);
         }
 
 #if ENABLE_INPUT_SYSTEM

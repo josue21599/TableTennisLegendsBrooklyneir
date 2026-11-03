@@ -102,6 +102,10 @@ namespace Brooklyneir.Gameplay
             _strokeVelocity = Vector3.zero;
             _magnetAccum = Vector3.zero;
             _hasCross = false;
+            // A swing decided by the CPU (e.g. the menu demo cut in the middle of a rally) must
+            // never carry over: the racket is reused from match to match.
+            _useSynthetic = false;
+            _syntheticSwing = Vector3.zero;
             _swingTimer = -1f;
             _celebrateTimer = -1f;
             _idleWeight = 0f;
@@ -137,7 +141,11 @@ namespace Brooklyneir.Gameplay
         public void ClearSyntheticSwing()
         {
             _useSynthetic = false;
+            _syntheticSwing = Vector3.zero;
         }
+
+        /// <summary>True while the racket reports a CPU-decided swing instead of the measured one.</summary>
+        public bool UsesSyntheticSwing { get { return _useSynthetic; } }
 
         /// <summary>
         /// The stroke: how the player's finger (the racket's target) has been moving over the last

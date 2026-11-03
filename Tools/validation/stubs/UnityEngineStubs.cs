@@ -245,7 +245,7 @@ namespace UnityEngine
         public TouchPhase phase { get { return TouchPhase.Began; } }
     }
 
-    public enum KeyCode { None, Escape, Space, Return, UpArrow, DownArrow, LeftArrow, RightArrow, A, D, S, W }
+    public enum KeyCode { None, Escape, Space, Return, UpArrow, DownArrow, LeftArrow, RightArrow, A, D, S, W, G }
 
     public static class Input
     {
@@ -416,10 +416,32 @@ namespace UnityEngine
     public enum TextureWrapMode { Repeat, Clamp, Mirror }
     public enum FilterMode { Point, Bilinear, Trilinear }
 
+    public class GUIContent { public GUIContent(string text) { } }
+    public class GUIStyleState { public Color textColor; public Texture2D background; }
+    public class GUIStyle
+    {
+        public GUIStyle(GUIStyle other) { }
+        public GUIStyleState normal = new GUIStyleState();
+        public bool wordWrap;
+        public RectOffset padding;
+        public int fontSize;
+        public float CalcHeight(GUIContent content, float width) { return 0f; }
+    }
+    public class GUISkin { public GUIStyle label; }
+    public static class GUI
+    {
+        public static GUISkin skin { get { return null; } }
+        public static Color color { get; set; }
+        public static void Label(Rect position, string text, GUIStyle style) { }
+    }
+
     public class Texture2D : Texture
     {
         public Texture2D(int width, int height, TextureFormat format, bool mipChain) { }
+        public Texture2D(int width, int height) { }
         public void SetPixels32(Color32[] colors) { }
+        public void SetPixel(int x, int y, Color c) { }
+        public void Apply() { }
         public void Apply(bool updateMipmaps, bool makeNoLongerReadable) { }
     }
 

@@ -19,7 +19,7 @@ namespace UnityEngine.InputSystem
         public static Keyboard current { get { return null; } }
         public KeyControl escapeKey { get { return null; } } public KeyControl spaceKey { get { return null; } } public KeyControl enterKey { get { return null; } }
         public KeyControl upArrowKey { get { return null; } } public KeyControl downArrowKey { get { return null; } } public KeyControl leftArrowKey { get { return null; } } public KeyControl rightArrowKey { get { return null; } }
-        public KeyControl aKey { get { return null; } } public KeyControl dKey { get { return null; } } public KeyControl sKey { get { return null; } } public KeyControl wKey { get { return null; } }
+        public KeyControl aKey { get { return null; } } public KeyControl dKey { get { return null; } } public KeyControl sKey { get { return null; } } public KeyControl wKey { get { return null; } } public KeyControl gKey { get { return null; } }
     }
     public class Mouse { public static Mouse current { get { return null; } } public Vector2Control position { get { return null; } } public ButtonControl leftButton { get { return null; } } }
 }
