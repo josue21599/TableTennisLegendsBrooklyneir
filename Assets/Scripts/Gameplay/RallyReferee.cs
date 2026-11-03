@@ -46,6 +46,21 @@ namespace Brooklyneir.Gameplay
             NetTouchedThisShot = false;
         }
 
+        /// <summary>
+        /// Copies the whole state of another referee (LAN host: keeps the rally as it was before a
+        /// point that may still be undone by a hit arriving late from the other phone). No rule changes.
+        /// </summary>
+        public void CopyFrom(RallyReferee other)
+        {
+            LastHitter = other.LastHitter;
+            BouncesOnReceiverSide = other.BouncesOnReceiverSide;
+            RallyOver = other.RallyOver;
+            Winner = other.Winner;
+            Reason = other.Reason;
+            HitCount = other.HitCount;
+            NetTouchedThisShot = other.NetTouchedThisShot;
+        }
+
         /// <summary>True when <paramref name="player"/> may legally hit the ball right now.</summary>
         public bool CanHit(int player)
         {
