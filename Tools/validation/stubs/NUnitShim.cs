@@ -20,6 +20,7 @@ namespace NUnit.Framework
         public static void IsTrue(bool c, string msg = null) { if (!c) Fail("Expected true", msg); }
         public static void IsFalse(bool c, string msg = null) { if (c) Fail("Expected false", msg); }
         public static void IsNull(object o, string msg = null) { if (o != null) Fail("Expected null", msg); }
+        public static void AreSame(object e, object a, string msg = null) { if (!ReferenceEquals(e, a)) Fail("Expected the same instance", msg); }
         public static void DoesNotThrow(TestDelegate code, string msg = null) { try { code(); } catch (System.Exception e) { Fail("Unexpected exception " + e.Message, msg); } }
         public static void IsNotNull(object o, string msg = null) { if (o == null) Fail("Expected not null", msg); }
         public static void AreEqual(object e, object a, string msg = null) { if (!Equals(e, a)) Fail("Expected " + e + " but was " + a, msg); }

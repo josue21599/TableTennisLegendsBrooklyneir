@@ -1,0 +1,18 @@
+{
+  "discoveryPort": 47777,
+  "gamePort": 47778,
+  "announceIntervalSeconds": 1.0,
+  "paddleSendRate": 30,
+  "pingIntervalSeconds": 2.0,
+  "clockSamples": 16,
+  "pointGraceExtraMs": 60,
+  "pointGraceMinMs": 40,
+  "pointGraceMaxMs": 200,
+  "silenceTimeoutSeconds": 1.5,
+  "reconnectWindowSeconds": 30.0,
+  "remoteRenderDelaySeconds": 0.1,
+  "ballCorrectionSmoothingSeconds": 0.1,
+  "resumeCountdownSeconds": 3.0,
+  "simulatedLatencyMs": 0,
+  "simulatedLossPercent": 0.0
+}

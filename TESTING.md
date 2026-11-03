@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 131 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 137 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 131
+### 1.1 Pruebas automáticas: 137
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **131**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **127**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **137**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **133**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -28,6 +28,7 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `RemotePaddleBufferTests` | 4 | Pala del rival en red: interpolación, paquetes repetidos o desordenados descartados, extrapolación limitada y salto limpio tras un hueco |
 | `ShotDiagnosticsTests` | 3 | Texto de depuración del golpe: dice qué condición faltó para remate, efecto o rápido, con las mismas condiciones que la clasificación real |
 | `MousePointerTests` | 2 | Ratón del editor: un clic rápido dentro de un fotograma también se suelta, y el ratón nunca se queda enganchado a un jugador |
+| `NetProtocolTests` | 6 | Multijugador LAN: los 18 mensajes van y vuelven exactos (bit a bit), paquetes cortados, con bytes de más o basura rechazados sin excepciones, versión de protocolo distinta, textos recortados sin romper letras, un millón de paquetes sin recolección de basura, y `net.json` validado |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 

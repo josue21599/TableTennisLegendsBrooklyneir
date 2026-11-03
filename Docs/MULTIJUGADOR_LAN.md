@@ -47,6 +47,7 @@ Unity Transport (`com.unity.transport` 2.x) directamente, con un canal fiable y 
 | `PowerRequest` / `PowerState` | Fiable | I → A / A → ambos | Activación / estado de los poderes (y pelota si cambia la trayectoria) |
 | `ShieldSave` | Fiable | A → I | Estado de la pelota tras la salvada |
 | `PointResult` | Fiable | A → I | Ganador, motivo, marcador completo, siguiente saque, punto de partido, fin |
+| `OrbState` | Fiable | A → I | Orbe de poder: activo, posición y tipo (quién lo recoge llega en `PowerState`) |
 | `Pause` / `ResumeAt` / `Bye` | Fiable | Ambos | Pausa con foto de la pelota, reanudación en un tick común, abandono |
 
 ## Conexión
@@ -74,7 +75,21 @@ Unity Transport (`com.unity.transport` 2.x) directamente, con un canal fiable y 
 
 `PlayerControl` (`Local`, `Cpu`, `Remote`, `None`) y `ControlSetup`, que reproduce las reglas anteriores; controladores `TouchPaddleDriver`, `CpuPaddleDriver` (envuelve `AIPlayer` sin cambiarlo), `RemotePaddleDriver` y `NoPaddleDriver`; `RemotePaddleBuffer`. `MatchController` pregunta al controlador en vez de a `Human[]` y a la IA. La jugabilidad local no cambia.
 
-### Fase 2: LAN con dos móviles (pendiente)
+### Fase 2: LAN con dos móviles (en curso)
+
+Aprobada el 3 de noviembre de 2026. Móviles para la prueba final: **OPPO Reno11 F (Android 16)** y **OnePlus 12 (Android 15)**. Entrada: botón **"LAN"** en la fila inferior del menú, con *Crear partida* y *Unirse*. Nombre de cada jugador: el del perfil o, si no hay, "J1"/"J2".
+
+| Paso | Contenido | Pruebas nuevas | Unity / fuera |
+|---|---|---|---|
+| 1 ✅ | `NetProtocol` (18 tipos de mensaje, incluido `OrbState` para los orbes de poder) y `NetConfig` + `net.json` | 6 | 137 / 133 |
+| 2 | `ClockSync`: reloj compartido en ticks | 3 | 140 / 136 |
+| 3 | `BallSync`: física en ticks fijos, aplicar estado con adelanto, ralentización por ticks | 4 | 144 / 140 |
+| 4 | `HostArbiter` + `RallyReferee.CopyFrom` | 5 | 149 / 145 |
+| 5 | `NetMatchSession` + `LoopbackLink`: dos móviles simulados con latencia y pérdidas, **con poderes** (ralentización y escudo incluidos; mismo marcador y mismo estado de poderes en los dos), corte corto, corte largo y **pausa con `ResumeAt`** (mismo tick y misma foto de la pelota). Aquí va la lógica de `PowerRequest`/`PowerState` y `OrbState` | 5 | 154 / 150 |
+| 6 | `ViewMapping`, cámara del invitado girada 180°, pantalla completa para el jugador local, HUD de un marco | 3 | 157 / 153 |
+| 7 | Unity Transport, `SessionStateMachine`, `NetMatchBridge`, conexión de poderes y orbes con el juego, segundo plano, y **`LanRewards`** (monedas y logros con el resultado del anfitrión; anulada no da nada; abandono = victoria del que se queda). Antes: confirmar la compatibilidad de Multiplayer Play Mode y `com.unity.transport` 2.x con Unity 6.6 | 6 | 163 / 159 |
+| 8 | Búsqueda (broadcast general y de subred, IP y máscara con `NetworkInterface` de Java, también en la zona wifi compartida), pantallas LAN, permisos de Android, README | 2 | 165 / 161 |
+
 
 Archivos nuevos: `Net/NetProtocol`, `Net/ClockSync`, `Net/BallSync`, `Net/HostArbiter`, `Net/NetConfig` + `net.json`, `Net/LanTransport`, `Net/LanDiscovery`, `Net/AndroidMulticastLock`, `Net/NetSession`, `Net/NetMatchBridge`, `UI/LanScreens`, `Editor/AndroidNetPermissions`. Cambios en `MatchController`, `MatchHud` (ping y "esperando al rival"), `CameraDirector`, menú, `Packages/manifest.json`, recompensas, README y TESTING.
 
