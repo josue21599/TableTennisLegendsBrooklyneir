@@ -24,3 +24,4 @@
 
 # Caché temporal de compilación de Unity
 /.utmp/
+*.slnx

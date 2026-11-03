@@ -30,6 +30,21 @@ namespace Brooklyneir.Gameplay
             return c;
         }
 
+        /// <summary>
+        /// Editor debug ("ver como invitado"): a match against the CPU where the person plays player 2,
+        /// like the LAN guest. Custom mode with player 1 as the CPU; the rackets swap so the person
+        /// keeps theirs.
+        /// </summary>
+        public static MatchConfig AsSecondPlayer(MatchConfig source)
+        {
+            MatchConfig c = source.Clone();
+            c.mode = GameMode.Custom;
+            c.player1IsAI = true;
+            c.player2IsAI = false;
+            string r = c.racketP1; c.racketP1 = c.racketP2; c.racketP2 = r;
+            return c;
+        }
+
         /// <summary>True only for a finger on this phone (touch input, assist, magnet, hit-stop, vibration).</summary>
         public static bool IsLocal(PlayerControl c) { return c == PlayerControl.Local; }
     }

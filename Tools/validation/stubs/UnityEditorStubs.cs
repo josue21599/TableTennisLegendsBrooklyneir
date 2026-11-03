@@ -10,6 +10,12 @@ namespace UnityEditor
     {
         public MenuItem(string itemName) { }
         public MenuItem(string itemName, bool isValidateFunction, int priority) { }
+        public MenuItem(string itemName, bool isValidateFunction) { }
+    }
+
+    public static class Menu
+    {
+        public static void SetChecked(string menuPath, bool isChecked) { }
     }
 
     public static class EditorApplication
@@ -24,6 +30,8 @@ namespace UnityEditor
     {
         public static int GetInt(string key, int defaultValue) { return 0; }
         public static void SetInt(string key, int value) { }
+        public static bool GetBool(string key, bool defaultValue) { return defaultValue; }
+        public static void SetBool(string key, bool value) { }
     }
 
     public static class EditorUtility

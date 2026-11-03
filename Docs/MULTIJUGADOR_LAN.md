@@ -86,7 +86,7 @@ Aprobada el 3 de noviembre de 2026. Móviles para la prueba final: **OPPO Reno11
 | 3 ✅ | `BallSync`: física en ticks fijos, aplicar estado con adelanto, ralentización por ticks | 4 | 144 / 140 |
 | 4 ✅ | `HostArbiter` + `RallyReferee.CopyFrom` | 5 | 149 / 145 |
 | 5 ✅ | `NetMatchSession` + `LoopbackLink`: dos móviles simulados con latencia y pérdidas, **con poderes** (ralentización y escudo incluidos; mismo marcador y mismo estado de poderes en los dos), corte corto, corte largo y **pausa con `ResumeAt`** (mismo tick y misma foto de la pelota). Aquí va la lógica de `PowerRequest`/`PowerState` y `OrbState` | 5 | 154 / 150 |
-| 6 | `ViewMapping`, cámara del invitado girada 180°, pantalla completa para el jugador local, HUD de un marco | 3 | 157 / 153 |
+| 6 ✅ | `ViewMapping`, cámara del invitado girada 180°, pantalla completa para el jugador local, HUD de un marco | 3 | 157 / 153 |
 | 7 | Unity Transport, `SessionStateMachine`, `NetMatchBridge`, conexión de poderes y orbes con el juego, segundo plano, y **`LanRewards`** (monedas y logros con el resultado del anfitrión; anulada no da nada; abandono = victoria del que se queda). Antes: confirmar la compatibilidad de Multiplayer Play Mode y `com.unity.transport` 2.x con Unity 6.6 | 6 | 163 / 159 |
 | 8 | Búsqueda (broadcast general y de subred, IP y máscara con `NetworkInterface` de Java, también en la zona wifi compartida), pantallas LAN, permisos de Android, README | 2 | 165 / 161 |
 
@@ -99,6 +99,10 @@ Aprobada el 3 de noviembre de 2026. Móviles para la prueba final: **OPPO Reno11
 - **Escudo:** lo decide el anfitrión con su pelota, igual que `MatchController` (segundo bote y muro detrás del jugador), y lo envía con `ShieldSave`.
 - **`LoopbackLink`** vive en la carpeta de pruebas: no entra en el juego.
 - Comprobación extra fuera de las pruebas: 60 partidos simulados (30 con poderes) con semillas distintas terminaron todos con el mismo marcador y 0 puntos leídos de forma distinta.
+
+**Hecho en el paso 6 y pendiente para el paso 7:**
+- La pantalla de resultados y `Rewards` dan por hecho que, contra la CPU, la persona es el J1. Con "Ver como invitado" (solo editor) el resultado sale como "¡GANA EL JUGADOR 1/2!" y cuenta como partida de dos jugadores. En el paso 7 los resultados y `LanRewards` usarán el jugador local (`MatchController.SingleLocalPlayer`).
+- `MatchController.RivalName` queda listo para el nombre del rival en LAN.
 
 
 Archivos nuevos: `Net/NetProtocol`, `Net/ClockSync`, `Net/BallSync`, `Net/HostArbiter`, `Net/NetConfig` + `net.json`, `Net/LanTransport`, `Net/LanDiscovery`, `Net/AndroidMulticastLock`, `Net/NetSession`, `Net/NetMatchBridge`, `UI/LanScreens`, `Editor/AndroidNetPermissions`. Cambios en `MatchController`, `MatchHud` (ping y "esperando al rival"), `CameraDirector`, menú, `Packages/manifest.json`, recompensas, README y TESTING.

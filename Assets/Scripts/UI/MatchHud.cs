@@ -225,16 +225,32 @@ namespace Brooklyneir.UI
             return f;
         }
 
+        /// <summary>Places a frame's buttons on a side of the screen (0 = left edge, 1 = right edge).</summary>
+        static void PlaceControls(Frame f, int side)
+        {
+            Side(side, (RectTransform)f.PowerButton.transform, 0f, 1f, 30f, -30f, 190f, 190f);
+            Side(side, f.OppStatus, 0f, 1f, 236f, -86f, 76f, 76f);
+            Side(side, (RectTransform)f.SpecialButton.transform, 0f, 0f, 36f, 36f, 170f, 170f);
+        }
+
         /// <summary>Configures the HUD for the match that just started.</summary>
         public void Bind()
         {
             bool training = _match.IsTraining;
-            bool p2 = _match.Human[1];
-            bool vsCpu = !p2;
-            _frames[0].Root.gameObject.SetActive(true);
-            _frames[1].Root.gameObject.SetActive(p2);
-            // Against the CPU, player 1's frame takes the whole screen.
-            UIKit.Region(_frames[0].Root, 0f, 0f, p2 ? 0.5f : 1f, 1f);
+            bool two = _match.Human[0] && _match.Human[1];
+            int single = _match.SingleLocalPlayer;
+            // One player on this phone (against the CPU, or LAN host or guest): that player's frame takes
+            // the whole screen, with its buttons on the left (its own side on screen: the guest's camera
+            // is turned 180°). Two players on one phone: one half each.
+            int main = single >= 0 ? single : 0;
+            for (int p = 0; p < 2; p++)
+            {
+                Frame f = _frames[p];
+                f.Root.gameObject.SetActive(two || p == main);
+                if (two) UIKit.Region(f.Root, p == 0 ? 0f : 0.5f, 0f, p == 0 ? 0.5f : 1f, 1f);
+                else UIKit.Region(f.Root, 0f, 0f, 1f, 1f);
+                PlaceControls(f, two ? p : 0);
+            }
             for (int p = 0; p < 2; p++)
             {
                 Frame f = _frames[p];
@@ -245,12 +261,21 @@ namespace Brooklyneir.UI
                 f.Message.text = "";
                 f.Count.text = "";
                 f.MessageTimer = 0f;
-                f.Board.gameObject.SetActive(!training && p == 0);
-                f.Timer.gameObject.SetActive(p == 0);
-                f.OppName.text = vsCpu && p == 0 ? "CPU" : "J" + (2 - p);
-                if (_match.Config.mode == GameMode.Tournament && _match.Config.tournamentRival > 0 && p == 0)
-                    f.OppName.text = Brooklyneir.Progression.Tournament.Rivals[_match.Config.tournamentRival].Nickname.ToUpperInvariant();
-                f.MyName.text = vsCpu ? "TÚ" : "J" + (p + 1);
+                // The scoreboard and the clock of the frame on screen (your score on the left).
+                f.Board.gameObject.SetActive(!training && p == main);
+                f.Timer.gameObject.SetActive(p == main);
+                if (two)
+                {
+                    f.MyName.text = "J" + (p + 1);
+                    f.OppName.text = "J" + (2 - p);
+                }
+                else
+                {
+                    f.MyName.text = "TÚ";
+                    f.OppName.text = RivalLabel(p);
+                    if (_match.Config.mode == GameMode.Tournament && _match.Config.tournamentRival > 0 && p == 0)
+                        f.OppName.text = Brooklyneir.Progression.Tournament.Rivals[_match.Config.tournamentRival].Nickname.ToUpperInvariant();
+                }
             }
             for (int p = 0; p < 2; p++)
             {
@@ -271,6 +296,15 @@ namespace Brooklyneir.UI
             }
         }
 
+        /// <summary>Name of the other player as seen by player p: LAN name, "CPU", or "J1"/"J2".</summary>
+        string RivalLabel(int p)
+        {
+            int o = 1 - p;
+            if (_match.Controls[o] == PlayerControl.Cpu) return "CPU";
+            if (!string.IsNullOrEmpty(_match.RivalName)) return _match.RivalName.ToUpperInvariant();
+            return "J" + (o + 1);
+        }
+
         public void SetVisible(bool on)
         {
             _visible = on;
@@ -288,13 +322,14 @@ namespace Brooklyneir.UI
                 f.MessageTimer = string.IsNullOrEmpty(text) ? 0f : (text == "TOCA PARA SACAR" ? 999f : 1.4f);
                 f.MessageRect.localScale = Vector3.one * 1.25f;
             }
-            // Single-player: messages for the CPU's side are shown smaller in player 1's frame.
-            if (player == 1 && !_match.Human[1] && !string.IsNullOrEmpty(text) && text != "TOCA PARA SACAR")
+            // One player on this phone: the other side's messages are shown, smaller, in this player's frame.
+            int single = _match.SingleLocalPlayer;
+            if (single >= 0 && player == 1 - single && !string.IsNullOrEmpty(text) && text != "TOCA PARA SACAR")
             {
-                Frame f = _frames[0];
+                Frame f = _frames[single];
                 if (f.MessageTimer <= 0.2f)
                 {
-                    f.Message.text = "CPU: " + text;
+                    f.Message.text = RivalLabel(single) + ": " + text;
                     f.Message.color = new Color(color.r, color.g, color.b, 0.85f);
                     f.MessageTimer = 1.1f;
                 }

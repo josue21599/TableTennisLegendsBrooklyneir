@@ -46,6 +46,12 @@ namespace Brooklyneir.Gameplay
         public bool[] Human { get; private set; }
         /// <summary>Who controls each racket: finger, CPU, network or nobody.</summary>
         public PlayerControl[] Controls { get; private set; }
+        /// <summary>Camera side for this match (turned 180° when the only local player is player 2).</summary>
+        public ViewSide View { get; private set; }
+        /// <summary>The only player on this phone, or -1 with two (same phone) or none (demo).</summary>
+        public int SingleLocalPlayer { get { return Human[0] == Human[1] ? -1 : (Human[0] ? 0 : 1); } }
+        /// <summary>Name shown for the other player (LAN: their profile name). Null: "CPU" or "J1"/"J2".</summary>
+        public string RivalName { get; set; }
         public int RallyHits { get; private set; }
         public float MatchClock { get; private set; }
         public bool IsDemo { get { return Config != null && Config.mode == GameMode.Demo; } }
@@ -180,6 +186,10 @@ namespace Brooklyneir.Gameplay
         public void StartMatch(MatchConfig config, int remotePlayer)
         {
             Abort();
+#if UNITY_EDITOR
+            if (DebugOptions.ViewAsGuest && remotePlayer < 0 && config.mode == GameMode.VersusCpu)
+                config = ControlSetup.AsSecondPlayer(config);
+#endif
             config.Validate();
             Config = config;
             _sfxScale = IsDemo ? 0.25f : 1f;
@@ -202,6 +212,9 @@ namespace Brooklyneir.Gameplay
             Rackets[1].Assist = Human[1] && settings != null && settings.assistP2;
 
             _input.Bind(Rackets[0], Rackets[1], Human[0], Human[1]);
+            View = ViewMapping.SideFor(Controls);
+            _camera.Side = View;
+            _input.SetViewSide(View);
             _input.SetEnabled(Human[0] || Human[1]);
 
             int firstServer = _rng.Value() < 0.5f ? 0 : 1;

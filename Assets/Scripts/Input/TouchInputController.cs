@@ -1,4 +1,5 @@
 using System;
+using Brooklyneir.CameraSystem;
 using Brooklyneir.Gameplay;
 using Brooklyneir.Physics;
 using UnityEngine;
@@ -63,6 +64,11 @@ namespace Brooklyneir.Controls
             _router.SetHumanControlled(0, p1Human);
             _router.SetHumanControlled(1, p2Human);
         }
+
+        ViewSide _side = ViewSide.PlusX;
+
+        /// <summary>Camera side, so the editor's arrow keys move the racket the way the screen shows it.</summary>
+        public void SetViewSide(ViewSide side) { _side = side; }
 
         public void SetEnabled(bool on)
         {
@@ -215,15 +221,15 @@ namespace Brooklyneir.Controls
             }
             Keyboard kb = Keyboard.current;
             if (kb == null) return;
-            // Screen right = +z, screen up = -x (camera on the +x side of the table).
-            Vector3 d0 = new Vector3(Key(kb.downArrowKey) - Key(kb.upArrowKey), 0f, Key(kb.rightArrowKey) - Key(kb.leftArrowKey));
-            Vector3 d1 = new Vector3(Key(kb.sKey) - Key(kb.wKey), 0f, Key(kb.dKey) - Key(kb.aKey));
+            // Keys move the racket in screen directions (ViewMapping knows the camera side).
+            Vector3 d0 = ViewMapping.ScreenToWorld(new Vector2(Key(kb.rightArrowKey) - Key(kb.leftArrowKey), Key(kb.upArrowKey) - Key(kb.downArrowKey)), _side);
+            Vector3 d1 = ViewMapping.ScreenToWorld(new Vector2(Key(kb.dKey) - Key(kb.aKey), Key(kb.wKey) - Key(kb.sKey)), _side);
             bool serve0 = kb.spaceKey.wasPressedThisFrame, serve1 = kb.enterKey.wasPressedThisFrame;
 #else
             Vector2 mp = Input.mousePosition;
             HandleMouse(Input.GetMouseButtonDown(0), Input.GetMouseButtonUp(0), Input.GetMouseButton(0), mp);
-            Vector3 d0 = new Vector3(Axis(KeyCode.DownArrow, KeyCode.UpArrow), 0f, Axis(KeyCode.RightArrow, KeyCode.LeftArrow));
-            Vector3 d1 = new Vector3(Axis(KeyCode.S, KeyCode.W), 0f, Axis(KeyCode.D, KeyCode.A));
+            Vector3 d0 = ViewMapping.ScreenToWorld(new Vector2(Axis(KeyCode.RightArrow, KeyCode.LeftArrow), Axis(KeyCode.UpArrow, KeyCode.DownArrow)), _side);
+            Vector3 d1 = ViewMapping.ScreenToWorld(new Vector2(Axis(KeyCode.D, KeyCode.A), Axis(KeyCode.W, KeyCode.S)), _side);
             bool serve0 = Input.GetKeyDown(KeyCode.Space), serve1 = Input.GetKeyDown(KeyCode.Return);
 #endif
             if (_router.IsHuman(0) && _rackets[0] != null)

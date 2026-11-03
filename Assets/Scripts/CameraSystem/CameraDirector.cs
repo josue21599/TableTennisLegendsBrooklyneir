@@ -19,6 +19,8 @@ namespace Brooklyneir.CameraSystem
         public Camera Cam { get; private set; }
         public CameraMode Mode { get; private set; }
         public bool ReducedEffects { get; set; }
+        /// <summary>Side of the table the match camera stands on (turned 180° for the LAN guest).</summary>
+        public ViewSide Side { get; set; }
 
         const float Fov = 38f;            // menus / fallback
         const float HorizontalFov = 60f;  // match: across the screen's long axis
@@ -119,8 +121,9 @@ namespace Brooklyneir.CameraSystem
                 _followOffset = Vector3.Lerp(_followOffset, desiredFollow, 1f - Mathf.Exp(-3f * dt));
                 Vector3 focus = _focus + _followOffset;
                 float e = Elevation * Mathf.Deg2Rad;
-                // Camera on the +x side looking towards -x: screen right = +z (player 2), left = -z (player 1).
-                pos = focus + new Vector3(Mathf.Cos(e) * dist, Mathf.Sin(e) * dist, 0f);
+                // Default: camera on the +x side looking towards -x: screen right = +z (player 2), left = -z
+                // (player 1). Turned 180° (ViewSide.MinusX) for the LAN guest, who then sees player 2 on the left.
+                pos = focus + new Vector3(ViewMapping.CameraXSign(Side) * Mathf.Cos(e) * dist, Mathf.Sin(e) * dist, 0f);
                 rot = Quaternion.LookRotation(focus - pos, Vector3.up);
                 fov = matchFov * (1f - _punch * 0.08f);
             }
