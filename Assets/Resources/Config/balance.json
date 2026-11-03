@@ -96,7 +96,7 @@
     "fastSwipeThreshold": 2.4,
     "smashSwipeThreshold": 4.2,
     "defensiveSwipeThreshold": -1.4,
-    "smashMinHeight": 0.38,
+    "smashMinHeight": 0.32,
     "spinSwipeThreshold": 2.4,
     "sideSpinPerSwipe": 1.1,
     "maxSideSpin": 3.2,

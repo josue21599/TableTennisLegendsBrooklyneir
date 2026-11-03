@@ -6,7 +6,7 @@ namespace Brooklyneir.Gameplay
 {
     /// <summary>
     /// Debug text for one hit: the shot type, the stroke that produced it and, for the shots it
-    /// did not become, the first condition that was missing ("remate: bola a 0,22 m, mínimo 0,38").
+    /// did not become, the first condition that was missing ("remate: bola a 0,22 m, mínimo 0,32").
     /// Uses exactly the conditions of ShotModel.Classify. Pure, unit-tested; only shown in the
     /// editor and development builds.
     /// </summary>

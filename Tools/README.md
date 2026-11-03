@@ -8,6 +8,7 @@ Unity solo compila lo que está dentro de `Assets/`, así que esta carpeta no af
   - `stubs/` declaraciones de la API de Unity usadas para comprobar tipos con Mono (`mcs`), y una implementación funcional mínima de `Vector3`/`Mathf` + sustituto de NUnit para ejecutar las pruebas.
   - `TestRunner.cs` ejecuta las pruebas de `Assets/Scripts/Tests/EditMode`.
   - `Tune.cs` simula cientos de peloteos CPU contra CPU para equilibrar la física.
+  - `SmashSweep.cs` mide la altura de las devoluciones de la CPU y el efecto de `smashMinHeight` (remates, golpes por punto y puntos que gana la CPU) contra un sustituto del jugador.
   - `GenBalance.cs` regenera `balance.json` a partir de los valores por defecto.
   - `meshcheck/` verifica la orientación de los triángulos de todas las mallas procedurales.
   - `render/` ejecuta los constructores de modelos con un motor mínimo y renderiza vistas previas.

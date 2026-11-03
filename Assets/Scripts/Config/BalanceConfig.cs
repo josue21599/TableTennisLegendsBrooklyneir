@@ -130,7 +130,7 @@ namespace Brooklyneir.Config
         public float smashSwipeThreshold = 4.2f;
         public float defensiveSwipeThreshold = -1.4f;
         /// <summary>Minimum ball height above the table for a smash to be allowed.</summary>
-        public float smashMinHeight = 0.38f;
+        public float smashMinHeight = 0.32f;
         /// <summary>Lateral racket speed (m/s) above which side spin is produced.</summary>
         public float spinSwipeThreshold = 2.4f;
         /// <summary>Lateral accel (m/s^2) produced per m/s of lateral swipe beyond the threshold.</summary>

@@ -33,13 +33,28 @@ Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → 
 
 ### 1.2 Simulación de equilibrado (400 peloteos por dificultad, CPU contra CPU)
 
+Valores actuales, con `smashMinHeight` = 0,32 m:
+
 | Dificultad | Golpes por peloteo | Altura media del vuelo sobre la mesa | Margen medio sobre la red |
 |---|---|---|---|
-| Fácil | 3,2 | 0,53 m | 0,27 m |
-| Normal | 7,4 | 0,48 m | 0,25 m |
-| Difícil | 15,3 | 0,44 m | 0,22 m |
+| Fácil | 3,83 | 0,55 m | 0,29 m |
+| Normal | 8,49 | 0,51 m | 0,26 m |
+| Difícil | 16,49 | 0,46 m | 0,23 m |
 
 Con estos datos se ajustaron gravedad, velocidades, efecto y márgenes (`balance.json`). Contra una persona los peloteos serán más cortos: la IA no tiene ayudas.
+
+### 1.2.1 Altura mínima del remate (`Tools/validation/SmashSweep.cs`)
+
+El remate exige que la bola llegue a una altura mínima sobre la mesa (`smashMinHeight`). Con 0,38 m, contra la CPU casi nunca se podía rematar. `SmashSweep` enfrenta a un sustituto del jugador (IA de nivel normal con el ruido de golpe humano) con la CPU de cada dificultad, con las mismas reglas de remate para los dos, en 2000 puntos por casilla (margen de unos ±2 puntos).
+
+Altura de las devoluciones de la CPU al llegar a la pala del jugador: mediana 0,36 / 0,30 / 0,26 m y percentil 75 de 0,39 / 0,37 / 0,28 m (fácil / normal / difícil).
+
+| `smashMinHeight` | Bolas rematables (F/N/D) | Remates CPU por punto | Remates jugador por punto | Golpes por punto | Puntos que gana la CPU |
+|---|---|---|---|---|---|
+| 0,38 (anterior) | 28 / 17 / 7 % | 0,02 / 0,10 / 0,22 | 0,07 / 0,10 / 0,14 | 6,4 / 9,5 / 13,2 | 32,7 / 47,3 / 61,6 % |
+| **0,32 (actual)** | 75 / 45 / 9 % | 0,09 / 0,28 / 0,60 | 0,34 / 0,34 / 0,16 | 6,4 / 9,6 / 12,8 | 33,5 / 45,5 / 60,0 % |
+
+Criterio aplicado: bajar la altura siempre que el porcentaje de puntos que gana la CPU no cambie más de 2 puntos en ninguna dificultad (cambios: +0,8 / −1,8 / −1,6). Los remates del jugador se multiplican por unos 3–5 en fácil y normal, y el equilibrio se mantiene.
 
 ### 1.3 Comprobación de tipos del proyecto completo
 
