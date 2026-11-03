@@ -83,7 +83,7 @@ Aprobada el 3 de noviembre de 2026. Móviles para la prueba final: **OPPO Reno11
 |---|---|---|---|
 | 1 ✅ | `NetProtocol` (18 tipos de mensaje, incluido `OrbState` para los orbes de poder) y `NetConfig` + `net.json` | 6 | 137 / 133 |
 | 2 ✅ | `ClockSync`: reloj compartido en ticks | 3 | 140 / 136 |
-| 3 | `BallSync`: física en ticks fijos, aplicar estado con adelanto, ralentización por ticks | 4 | 144 / 140 |
+| 3 ✅ | `BallSync`: física en ticks fijos, aplicar estado con adelanto, ralentización por ticks | 4 | 144 / 140 |
 | 4 | `HostArbiter` + `RallyReferee.CopyFrom` | 5 | 149 / 145 |
 | 5 | `NetMatchSession` + `LoopbackLink`: dos móviles simulados con latencia y pérdidas, **con poderes** (ralentización y escudo incluidos; mismo marcador y mismo estado de poderes en los dos), corte corto, corte largo y **pausa con `ResumeAt`** (mismo tick y misma foto de la pelota). Aquí va la lógica de `PowerRequest`/`PowerState` y `OrbState` | 5 | 154 / 150 |
 | 6 | `ViewMapping`, cámara del invitado girada 180°, pantalla completa para el jugador local, HUD de un marco | 3 | 157 / 153 |

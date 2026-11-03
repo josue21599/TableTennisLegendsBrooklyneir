@@ -26,9 +26,12 @@ namespace Brooklyneir.Tests
             return b;
         }
 
+        /// <summary>Exact, component by component (Unity's Vector3 == is approximate).</summary>
+        static bool Exact(Vector3 a, Vector3 b) { return a.x == b.x && a.y == b.y && a.z == b.z; }
+
         static void SameBall(NetBallState a, NetBallState b)
         {
-            Assert.IsTrue(a.Position == b.Position && a.Velocity == b.Velocity && a.Spin == b.Spin && a.Active == b.Active, "ball state must be bit-exact");
+            Assert.IsTrue(Exact(a.Position, b.Position) && Exact(a.Velocity, b.Velocity) && Exact(a.Spin, b.Spin) && a.Active == b.Active, "ball state must be bit-exact");
         }
 
         /// <summary>One sample of every message, written into the writer; returns its type.</summary>

@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 140 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 144 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 140
+### 1.1 Pruebas automáticas: 144
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **140**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **136**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **144**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **140**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -30,6 +30,7 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `MousePointerTests` | 2 | Ratón del editor: un clic rápido dentro de un fotograma también se suelta, y el ratón nunca se queda enganchado a un jugador |
 | `NetProtocolTests` | 6 | Multijugador LAN: los 18 mensajes van y vuelven exactos (bit a bit), paquetes cortados, con bytes de más o basura rechazados sin excepciones, versión de protocolo distinta, textos recortados sin romper letras, un millón de paquetes sin recolección de basura, y `net.json` validado |
 | `ClockSyncTests` | 3 | Reloj compartido LAN: desfase exacto con retardo simétrico; con retardos irregulares y picos de wifi (200 partidas simuladas) el error queda por debajo de la mitad de la mejor ida y vuelta; si el desfase cambia a mitad de partida, converge sin que el tick retroceda nunca |
+| `BallSyncTests` | 4 | Pelota en LAN: dos simulaciones con una diferencia de 1e-4 m/s divergen durante el vuelo y quedan idénticas bit a bit tras el siguiente golpe; el mismo estado da la misma pelota a 60, 90 y 120 Hz; el adelanto deja la pelota donde la tiene el otro móvil, con sus botes, y el dibujo se suaviza; la ralentización por ticks coincide en los dos móviles |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 
