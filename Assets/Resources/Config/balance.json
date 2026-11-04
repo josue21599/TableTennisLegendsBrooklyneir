@@ -204,6 +204,8 @@
     "winVsHard": 160,
     "lossConsolation": 15,
     "localMatchPlayed": 40,
+    "lanWin": 100,
+    "lanLoss": 25,
     "tournamentRoundWin": 80,
     "tournamentChampion": 600,
     "trainingStar": 25,

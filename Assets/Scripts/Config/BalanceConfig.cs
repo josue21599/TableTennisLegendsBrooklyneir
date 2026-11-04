@@ -333,6 +333,9 @@ namespace Brooklyneir.Config
         public int winVsHard = 160;
         public int lossConsolation = 15;
         public int localMatchPlayed = 40;
+        /// <summary>LAN match won (also when the other player leaves) and lost.</summary>
+        public int lanWin = 100;
+        public int lanLoss = 25;
         public int tournamentRoundWin = 80;
         public int tournamentChampion = 600;
         public int trainingStar = 25;          // per star, first time only
@@ -342,6 +345,8 @@ namespace Brooklyneir.Config
         public void Validate()
         {
             if (startingCoins < 0) startingCoins = 0;
+            if (lanWin < 0) lanWin = 100;
+            if (lanLoss < 0) lanLoss = 25;
             if (maxCoins < 1000) maxCoins = 1000;
         }
     }

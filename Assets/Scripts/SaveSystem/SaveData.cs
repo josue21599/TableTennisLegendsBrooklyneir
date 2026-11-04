@@ -43,6 +43,9 @@ namespace Brooklyneir.SaveSystem
         public int matchesWonVsCpu;
         public int matchesLostVsCpu;
         public int localMatches;
+        /// <summary>LAN matches that counted (void ones do not) and LAN wins.</summary>
+        public int lanMatches;
+        public int lanWins;
         public int pointsWon;
         public int totalHits;
         public int longestRally;
@@ -65,6 +68,8 @@ namespace Brooklyneir.SaveSystem
             matchesWonVsCpu = NonNeg(matchesWonVsCpu);
             matchesLostVsCpu = NonNeg(matchesLostVsCpu);
             localMatches = NonNeg(localMatches);
+            lanMatches = NonNeg(lanMatches);
+            lanWins = NonNeg(lanWins);
             pointsWon = NonNeg(pointsWon);
             totalHits = NonNeg(totalHits);
             longestRally = NonNeg(longestRally);

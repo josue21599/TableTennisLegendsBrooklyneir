@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 157 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 163 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 157
+### 1.1 Pruebas automáticas: 163
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **157**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **153**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **163**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **159**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -34,6 +34,8 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `HostArbiterTests` | 5 | Árbitro del anfitrión en LAN: un golpe del invitado dentro del margen anula el punto pendiente; uno tardío no; un golpe posterior al segundo bote (o anterior al primero) se rechaza; la copia del árbitro lo restaura todo y los puntos en el campo del anfitrión son inmediatos; en 50 partidos el marcador del invitado, a través del protocolo real, es siempre el del anfitrión |
 | `NetSessionTests` | 5 | Dos móviles simulados (anfitrión a 60 fps, invitado a 90 fps, relojes distintos) conectados por un enlace falso con 30 ms de latencia, ±15 ms de variación y un 5 % de pérdida, usando la misma `NetMatchSession` que el juego: un partido completo termina con el mismo marcador y sin ningún punto leído distinto; con poderes (4 partidos, con ralentización y salvadas de escudo) terminan además con el mismo estado de poderes; un corte de 2 s pausa a los dos, anula el punto y la partida sigue; un corte más largo que el plazo de reconexión anula la partida en los dos; tras una pausa, `ResumeAt` reanuda a los dos en el mismo tick y con la misma pelota bit a bit |
 | `ViewTests` | 3 | Vista del invitado LAN: el único jugador local usa toda la pantalla (anfitrión e invitado) y la cámara del invitado gira 180°; con el modelo de golpe real, la pelota va hacia el lado de la pantalla al que se mueve la pala, para el anfitrión y para el invitado con la cámara girada; `ViewMapping` coincide con las cuentas de la cámara |
+| `SessionStateMachineTests` | 4 | Estados de la conexión LAN: un corte durante el partido espera el plazo de reconexión y después anula la partida; el invitado vuelve con su código de sesión y el partido sigue; quien sale pierde y el que se queda gana; un código de sesión, una versión del protocolo, de la app o del balance distintos se rechazan |
+| `LanRewardsTests` | 2 | Recompensas LAN: una partida anulada no da monedas, estadísticas ni logros a nadie; al abandonar gana el que se queda (victoria LAN y sus monedas), el que sale no recibe monedas del partido (solo los logros que ya haya alcanzado) y cada móvil cuenta las estadísticas de su propio jugador |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 
