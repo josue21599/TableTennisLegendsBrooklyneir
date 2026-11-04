@@ -112,7 +112,7 @@ namespace Brooklyneir.UI
         public override bool OnBack() { return false; }
     }
 
-    /// <summary>Main menu: the five game modes plus collection, shop, profile and settings.</summary>
+    /// <summary>Main menu: the five game modes plus collection, shop, profile, LAN and settings.</summary>
     public class MainMenuScreen : UIScreen
     {
         protected override void OnBuild()
@@ -151,6 +151,7 @@ namespace Brooklyneir.UI
             UIKit.Button(bottom, "MESAS", IconId.Table, ButtonStyle.Secondary, () => UI.Push(new TableSelectScreen()), 32);
             UIKit.Button(bottom, "TIENDA", IconId.Shop, ButtonStyle.Secondary, () => UI.Push(new ShopScreen()), 32);
             UIKit.Button(bottom, "PERFIL", IconId.Profile, ButtonStyle.Secondary, () => UI.Push(new ProfileScreen()), 32);
+            UIKit.Button(bottom, "LAN", IconId.TwoPlayers, ButtonStyle.Cyan, () => UI.Push(new LanMenuScreen()), 32);
             UIKit.Button(bottom, "AJUSTES", IconId.Gear, ButtonStyle.Secondary, () => UI.Push(new SettingsScreen()), 32);
         }
 

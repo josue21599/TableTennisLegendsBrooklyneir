@@ -22,12 +22,15 @@ namespace Brooklyneir.UI
         static readonly float[] TimeOptions = { 0f, 2f, 3f, 5f, 8f };
 
         readonly GameMode _mode;
+        readonly bool _lan;
         MatchConfig _cfg;
         TMP_Text _notes;
 
-        public MatchSetupScreen(GameMode mode)
+        /// <param name="lan">LAN host: the rival is the other phone (its own racket), no powers yet; starts through LanLobby.</param>
+        public MatchSetupScreen(GameMode mode, bool lan = false)
         {
             _mode = mode;
+            _lan = lan && ControlSetup.AllowsRemote(mode);
         }
 
         MatchConfig Config
@@ -56,15 +59,22 @@ namespace Brooklyneir.UI
         {
             _cfg = Config;
             string title = _mode == GameMode.QuickMatch ? "PARTIDA RÁPIDA" : _mode == GameMode.VersusCpu ? "CONTRA LA MÁQUINA" : "PARTIDA PERSONALIZADA";
+            if (_lan) title += " · LAN";
             Header(title);
 
             // Left: participants and table.
             RectTransform left = UIKit.Node(Root, "Left");
             UIKit.Region(left, 0.03f, 0.18f, 0.47f, 0.84f);
             UIKit.Column(left, 18f);
-            bool p2Human = !_cfg.player2IsAI;
-            RacketCard(left, 0, "JUGADOR 1", MatchController.PlayerColors[0]);
-            if (_mode == GameMode.Custom)
+            bool p2Human = _lan || !_cfg.player2IsAI;
+            RacketCard(left, 0, _lan ? "JUGADOR 1 (TÚ)" : "JUGADOR 1", MatchController.PlayerColors[0]);
+            if (_lan)
+            {
+                string rival = Game.Lan != null && !string.IsNullOrEmpty(Game.Lan.RivalName) ? Game.Lan.RivalName : "J2";
+                TMP_Text r2 = UIKit.Label(UIKit.Height(UIKit.Node(left, "Rival"), 110f), "JUGADOR 2: " + rival + " (el otro móvil, con su raqueta)", 30, MatchController.PlayerColors[1], TextAnchor.MiddleLeft);
+                UIKit.Stretch((RectTransform)r2.transform, 20f, 20f, 0f, 0f);
+            }
+            else if (_mode == GameMode.Custom)
             {
                 RectTransform rival = UIKit.Height(UIKit.Node(left, "Rival"), 80f);
                 UIKit.Segmented(rival, "Rival", new[] { "2 JUGADORES", "MÁQUINA" }, p2Human ? 0 : 1, i =>
@@ -73,7 +83,8 @@ namespace Brooklyneir.UI
                     Rebuild();
                 });
             }
-            if (p2Human) RacketCard(left, 1, "JUGADOR 2", MatchController.PlayerColors[1]);
+            if (_lan) { }
+            else if (p2Human) RacketCard(left, 1, "JUGADOR 2", MatchController.PlayerColors[1]);
             else
             {
                 RectTransform diff = UIKit.Height(UIKit.Node(left, "Difficulty"), 80f);
@@ -112,8 +123,13 @@ namespace Brooklyneir.UI
                 int pi = _cfg.pointsToWin == 5 ? 0 : (_cfg.pointsToWin == 11 ? 2 : 1);
                 UIKit.Segmented(UIKit.Height(UIKit.Node(rules, "Points"), 74f), "Partido a", pts, pi, i => _cfg.pointsToWin = i == 0 ? 5 : (i == 1 ? 7 : 11));
             }
-            UIKit.Toggle(UIKit.Height(UIKit.Node(rules, "Powers"), 74f), "Poderes", _cfg.powerUpsEnabled, v => { _cfg.powerUpsEnabled = v; Validate(); Rebuild(); });
-            if (_cfg.powerUpsEnabled)
+            if (_lan)
+            {
+                TMP_Text pw = UIKit.Label(UIKit.Height(UIKit.Node(rules, "Powers"), 74f), "Poderes: todavía no en LAN (llegan en el siguiente paso).", 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
+                UIKit.Stretch((RectTransform)pw.transform);
+            }
+            else UIKit.Toggle(UIKit.Height(UIKit.Node(rules, "Powers"), 74f), "Poderes", _cfg.powerUpsEnabled, v => { _cfg.powerUpsEnabled = v; Validate(); Rebuild(); });
+            if (_cfg.powerUpsEnabled && !_lan)
             {
                 int fi = _cfg.powerFrequency == PowerFrequency.Low ? 0 : (_cfg.powerFrequency == PowerFrequency.High ? 2 : 1);
                 UIKit.Segmented(UIKit.Height(UIKit.Node(rules, "Freq"), 74f), "Frecuencia", new[] { "BAJA", "NORMAL", "ALTA" }, fi,
@@ -124,7 +140,7 @@ namespace Brooklyneir.UI
 
             Button play = UIKit.Button(Root, "¡A JUGAR!", IconId.Play, ButtonStyle.Primary, StartMatch, 46);
             UIKit.At((RectTransform)play.transform, 1f, 0f, -60f, 30f, 520f, 120f);
-            TMP_Text hint = UIKit.Label(Root, p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Golpea atravesando la pelota: recto = recto o remate, en diagonal = a ese lado, arriba/abajo = efecto, atrás = globo.",
+            TMP_Text hint = UIKit.Label(Root, _lan ? "Cada uno juega en su móvil, con toda la pantalla. La mesa es la tuya." : p2Human ? "Jugador 1 a la izquierda · Jugador 2 a la derecha. Cada uno usa su mitad de la pantalla." : "Golpea atravesando la pelota: recto = recto o remate, en diagonal = a ese lado, arriba/abajo = efecto, atrás = globo.",
                 28, Theme.TextDim, TextAnchor.MiddleLeft, FontStyle.Italic);
             UIKit.At((RectTransform)hint.transform, 0f, 0f, 60f, 40f, 1200f, 100f);
             Validate();
@@ -177,7 +193,7 @@ namespace Brooklyneir.UI
         void Rebuild()
         {
             UI.Pop();
-            UI.Push(new MatchSetupScreen(_mode));
+            UI.Push(new MatchSetupScreen(_mode, _lan));
         }
 
         void StartMatch()
@@ -186,6 +202,15 @@ namespace Brooklyneir.UI
             c.mode = _mode == GameMode.Custom ? GameMode.Custom : _mode;
             if (_mode == GameMode.QuickMatch) c.player2IsAI = false;
             c.Validate();
+            if (_lan)
+            {
+                if (Game.Lan == null || !Game.Lan.HostStartMatch(c))
+                {
+                    UI.Toast("El otro móvil ya no está conectado.", Theme.Danger);
+                    UI.Pop();
+                }
+                return;
+            }
             Game.Flow.StartMatch(c);
         }
     }

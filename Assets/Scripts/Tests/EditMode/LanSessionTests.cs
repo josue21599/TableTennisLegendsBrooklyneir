@@ -169,15 +169,18 @@ namespace Brooklyneir.Tests
             Assert.AreEqual(5, stay.stats.pointsWon, "its own points (player 2)");
             Assert.AreEqual(38, stay.stats.totalHits);
             Assert.AreEqual(4, stay.stats.smashes);
-            // The host who left: a loss, counted, without coins.
+            // The host who left: counted in lanMatches as played and lost; no coins, no achievements, no other stat.
             SaveData left = SaveData.CreateNew(0);
             Economy ecoLeft = new Economy(left, t);
             int before = ecoLeft.Coins;
             RewardSummary leftSum = LanRewards.ForMatch(Result(0), 0, LanOutcome.LocalLeft, left, ecoLeft);
-            int milestones = 0;
-            for (int i = 0; i < leftSum.Achievements.Count; i++) milestones += leftSum.Achievements[i].Reward;
-            Assert.AreEqual(before + milestones, ecoLeft.Coins, "the match itself earns nothing; only achievements already reached pay (they are milestones, not this match's prize)");
-            Assert.IsFalse(leftSum.Lines.Contains("Victoria en LAN") || leftSum.Lines.Contains("Premio por participar"));
+            Assert.AreEqual(before, ecoLeft.Coins, "whoever leaves earns nothing");
+            Assert.AreEqual(0, leftSum.Coins);
+            Assert.AreEqual(0, leftSum.Achievements.Count, "not even an achievement");
+            Assert.AreEqual(0, left.achievements.Count);
+            Assert.AreEqual(0, left.stats.matchesPlayed, "only lanMatches moves");
+            Assert.AreEqual(0, left.stats.pointsWon);
+            Assert.AreEqual(0, left.stats.totalHits);
             Assert.AreEqual(1, left.stats.lanMatches);
             Assert.AreEqual(0, left.stats.lanWins);
             // A normal finish: the guest wins only if player 2 won.

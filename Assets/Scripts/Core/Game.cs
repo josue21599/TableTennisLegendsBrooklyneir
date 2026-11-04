@@ -3,6 +3,7 @@ using Brooklyneir.Audio;
 using Brooklyneir.CameraSystem;
 using Brooklyneir.Config;
 using Brooklyneir.Gameplay;
+using Brooklyneir.Net;
 using Brooklyneir.Progression;
 using Brooklyneir.SaveSystem;
 using Brooklyneir.Tables;
@@ -29,6 +30,8 @@ namespace Brooklyneir.Core
         public static UIManager UI { get; internal set; }
         public static AppFlow Flow { get; internal set; }
         public static PreviewStage Preview { get; internal set; }
+        /// <summary>LAN connection on this phone (idle outside the LAN screens and matches).</summary>
+        public static LanLobby Lan { get; internal set; }
 
         public static bool Ready { get { return Flow != null; } }
     }

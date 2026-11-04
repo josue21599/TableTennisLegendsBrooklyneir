@@ -217,6 +217,14 @@ namespace UnityEngine
         public static float unscaledTime { get { return 0f; } }
         public static float unscaledDeltaTime { get { return 0f; } }
         public static float timeScale { get; set; }
+        public static double realtimeSinceStartupAsDouble { get { return 0.0; } }
+    }
+
+    public static class PlayerPrefs
+    {
+        public static string GetString(string key, string def = "") { return def; }
+        public static void SetString(string key, string value) { }
+        public static void Save() { }
     }
 
     public enum ScreenOrientation { Portrait = 1, PortraitUpsideDown = 2, LandscapeLeft = 3, LandscapeRight = 4, AutoRotation = 5 }
@@ -350,6 +358,8 @@ namespace UnityEngine
 
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
     public class RequireComponent : Attribute { public RequireComponent(Type t) { } }
+    [AttributeUsage(AttributeTargets.Class)]
+    public class DefaultExecutionOrder : Attribute { public DefaultExecutionOrder(int order) { } }
     [AttributeUsage(AttributeTargets.Method)]
     public class RuntimeInitializeOnLoadMethodAttribute : Attribute
     {

@@ -2,15 +2,15 @@
 
 Este documento recoge las pruebas automáticas, las comprobaciones hechas fuera de Unity y las pruebas manuales en un móvil real.
 
-**Resumen:** 163 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
+**Resumen:** 164 pruebas automáticas en el Test Runner de Unity y las 24 pruebas manuales superadas en un **OPPO Reno11 F con Android 16**.
 
 ## 1. Pruebas ejecutadas (fuera de Unity)
 
 El proyecto se creó en un entorno Linux sin Unity. Para no entregar código sin comprobar, se hizo lo siguiente con el compilador de C# de Mono 6.8. Las herramientas están en `Tools/validation` (no forman parte del juego y Unity no las compila).
 
-### 1.1 Pruebas automáticas: 163
+### 1.1 Pruebas automáticas: 164
 
-Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **163**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **159**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
+Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brooklyneir.Tests.EditMode`). En el Test Runner de Unity son **164**. Fuera de Unity, con Mono y un sustituto mínimo de NUnit con los mismos nombres, se ejecutan **160**: las 4 de `UiFontTests` necesitan cargar la fuente real y solo funcionan dentro de Unity.
 
 | Archivo | Pruebas | Qué cubren |
 |---|---|---|
@@ -29,13 +29,13 @@ Las pruebas están en `Assets/Scripts/Tests/EditMode` (NUnit, ensamblado `Brookl
 | `ShotDiagnosticsTests` | 3 | Texto de depuración del golpe: dice qué condición faltó para remate, efecto o rápido, con las mismas condiciones que la clasificación real |
 | `MousePointerTests` | 2 | Ratón del editor: un clic rápido dentro de un fotograma también se suelta, y el ratón nunca se queda enganchado a un jugador |
 | `NetProtocolTests` | 6 | Multijugador LAN: los 19 mensajes van y vuelven exactos (bit a bit), paquetes cortados, con bytes de más o basura rechazados sin excepciones, versión de protocolo distinta, textos recortados sin romper letras, un millón de paquetes sin recolección de basura, y `net.json` validado |
-| `ClockSyncTests` | 3 | Reloj compartido LAN: desfase exacto con retardo simétrico; con retardos irregulares y picos de wifi (200 partidas simuladas) el error queda por debajo de la mitad de la mejor ida y vuelta; si el desfase cambia a mitad de partida, converge sin que el tick retroceda nunca |
+| `ClockSyncTests` | 4 | Reloj compartido LAN: desfase exacto con retardo simétrico; con retardos irregulares y picos de wifi (200 partidas simuladas) el error queda por debajo de la mitad de la mejor ida y vuelta; si el desfase cambia a mitad de partida, converge sin que el tick retroceda nunca; si el reloj del invitado va minutos por delante, la primera sincronización lo lleva al tick del anfitrión al momento (la única vez que puede retroceder) |
 | `BallSyncTests` | 4 | Pelota en LAN: dos simulaciones con una diferencia de 1e-4 m/s divergen durante el vuelo y quedan idénticas bit a bit tras el siguiente golpe; el mismo estado da la misma pelota a 60, 90 y 120 Hz; el adelanto deja la pelota donde la tiene el otro móvil, con sus botes, y el dibujo se suaviza; la ralentización por ticks coincide en los dos móviles |
 | `HostArbiterTests` | 5 | Árbitro del anfitrión en LAN: un golpe del invitado dentro del margen anula el punto pendiente; uno tardío no; un golpe posterior al segundo bote (o anterior al primero) se rechaza; la copia del árbitro lo restaura todo y los puntos en el campo del anfitrión son inmediatos; en 50 partidos el marcador del invitado, a través del protocolo real, es siempre el del anfitrión |
 | `NetSessionTests` | 5 | Dos móviles simulados (anfitrión a 60 fps, invitado a 90 fps, relojes distintos) conectados por un enlace falso con 30 ms de latencia, ±15 ms de variación y un 5 % de pérdida, usando la misma `NetMatchSession` que el juego: un partido completo termina con el mismo marcador y sin ningún punto leído distinto; con poderes (4 partidos, con ralentización y salvadas de escudo) terminan además con el mismo estado de poderes; un corte de 2 s pausa a los dos, anula el punto y la partida sigue; un corte más largo que el plazo de reconexión anula la partida en los dos; tras una pausa, `ResumeAt` reanuda a los dos en el mismo tick y con la misma pelota bit a bit |
 | `ViewTests` | 3 | Vista del invitado LAN: el único jugador local usa toda la pantalla (anfitrión e invitado) y la cámara del invitado gira 180°; con el modelo de golpe real, la pelota va hacia el lado de la pantalla al que se mueve la pala, para el anfitrión y para el invitado con la cámara girada; `ViewMapping` coincide con las cuentas de la cámara |
 | `SessionStateMachineTests` | 4 | Estados de la conexión LAN: un corte durante el partido espera el plazo de reconexión y después anula la partida; el invitado vuelve con su código de sesión y el partido sigue; quien sale pierde y el que se queda gana; un código de sesión, una versión del protocolo, de la app o del balance distintos se rechazan |
-| `LanRewardsTests` | 2 | Recompensas LAN: una partida anulada no da monedas, estadísticas ni logros a nadie; al abandonar gana el que se queda (victoria LAN y sus monedas), el que sale no recibe monedas del partido (solo los logros que ya haya alcanzado) y cada móvil cuenta las estadísticas de su propio jugador |
+| `LanRewardsTests` | 2 | Recompensas LAN: una partida anulada no da monedas, estadísticas ni logros a nadie; al abandonar gana el que se queda (victoria LAN y sus monedas), el que sale no recibe monedas ni logros y solo se le cuenta la partida en `lanMatches` (jugada y perdida); cada móvil cuenta las estadísticas de su propio jugador |
 
 Para ejecutarlas en Unity: *Window → General → Test Runner → EditMode → Run All*.
 
@@ -85,6 +85,21 @@ Todo el código (juego, interfaz, editor) se compiló sin errores contra declara
 ## 2. Pruebas en Unity y en el móvil
 
 Lo que no se podía comprobar fuera de Unity ya está hecho: el proyecto se abre y compila en **Unity 6.6**, la configuración automática funciona, el juego se ha visto en movimiento (interfaz, efectos y cámara), la APK se compila con IL2CPP y se ha probado en un móvil real.
+
+## 2.1 Pruebas manuales LAN (paso 7b-2, pendientes)
+
+Dos móviles con el mismo APK (Internet Access = Require) en la misma wifi, o Multiplayer Play Mode con `127.0.0.1`.
+
+| # | Prueba | Resultado esperado |
+|---|---|---|
+| L1 | Anfitrión: LAN → Crear partida → Partida rápida → ¡A JUGAR! | Los dos móviles cuentan 3, 2, 1 a la vez y sale el mismo sacador |
+| L2 | Jugar un partido completo | Mismo marcador en los dos en todo momento; resultados: VICTORIA en uno y DERROTA en el otro |
+| L3 | Invitado: la cámara | Ve la mesa desde su lado (girada 180°) y juega con toda la pantalla |
+| L4 | Pausa desde cualquiera de los dos | Se para en los dos; REANUDAR cuenta 3 s en los dos |
+| L5 | Salir del partido desde la pausa | El otro gana (+100); el que sale: 0 monedas, sin logros |
+| L6 | Apagar la wifi de un móvil 5 s y volver a encenderla | Los dos se congelan, «Conexión recuperada: se repite el punto» |
+| L7 | Dejar un móvil sin wifi más de 30 s | Partida anulada en los dos, sin monedas |
+| L8 | Personalizada a 3 puntos y al mejor de 3 sets | Mismos sets en los dos y resultados correctos |
 
 ## 3. Pruebas manuales en el móvil: 24 de 24 superadas
 

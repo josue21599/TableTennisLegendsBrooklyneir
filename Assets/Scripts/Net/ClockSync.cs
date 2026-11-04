@@ -83,7 +83,14 @@ namespace Brooklyneir.Net
                 if (_samples[i].Rtt < _samples[best].Rtt) best = i;
             _estimate = _samples[best].Offset;
             RoundTrip = _samples[best].Rtt;
-            if (first) _applied = _estimate; // the first estimate is taken at once (nothing shown yet)
+            if (first)
+            {
+                // The first estimate is taken at once (nothing is shown yet), and the tick may go back
+                // this once: before syncing, Tick counted the guest's own clock, which can be minutes
+                // ahead of the host's (each phone counts from its own app start).
+                _applied = _estimate;
+                _lastTick = 0;
+            }
         }
 
         /// <summary>Call once per frame with the local clock: slews the applied offset towards the estimate.</summary>

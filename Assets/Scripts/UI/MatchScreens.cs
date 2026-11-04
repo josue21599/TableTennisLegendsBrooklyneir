@@ -49,12 +49,20 @@ namespace Brooklyneir.UI
         TMP_Text _coins;
         int _shownCoins;
 
-        public ResultsScreen(MatchResult r, RewardSummary rewards, bool tournament)
+        readonly int _localPlayer;
+        readonly string _rivalName;
+
+        /// <param name="localPlayer">LAN: the player on this phone (titles and labels from its side); -1 otherwise.</param>
+        public ResultsScreen(MatchResult r, RewardSummary rewards, bool tournament, int localPlayer = -1, string rivalName = null)
         {
             _r = r;
             _rewards = rewards;
             _tournament = tournament;
+            _localPlayer = localPlayer;
+            _rivalName = rivalName;
         }
+
+        bool Lan { get { return _localPlayer == 0 || _localPlayer == 1; } }
 
         protected override void OnBuild()
         {
@@ -64,9 +72,11 @@ namespace Brooklyneir.UI
             int w = _r.Winner;
             Color wc = w >= 0 ? MatchController.PlayerColors[w] : Theme.Text;
             string title;
-            if (vsCpu) title = w == 0 ? "¡VICTORIA!" : "DERROTA";
+            bool lost = Lan ? w != _localPlayer : vsCpu && w != 0;
+            if (Lan) title = w == _localPlayer ? "¡VICTORIA!" : "DERROTA";
+            else if (vsCpu) title = w == 0 ? "¡VICTORIA!" : "DERROTA";
             else title = "¡GANA EL JUGADOR " + (w + 1) + "!";
-            TMP_Text h = UIKit.Heading(Root, title, 110, vsCpu && w != 0 ? Theme.TextDim : wc);
+            TMP_Text h = UIKit.Heading(Root, title, 110, lost ? Theme.TextDim : wc);
             UIKit.At((RectTransform)h.transform, 0.5f, 1f, 0f, -40f, 1600f, 160f);
 
             // Score.
@@ -87,7 +97,9 @@ namespace Brooklyneir.UI
                 "Peloteo más largo: " + _r.LongestRally,
                 "Duración: " + Mathf.FloorToInt(_r.DurationSeconds / 60f) + ":" + Mathf.FloorToInt(_r.DurationSeconds % 60f).ToString("00")
             };
-            TMP_Text legend = UIKit.Label(card.transform, (vsCpu ? "TÚ" : "J1") + " / " + p2, 24, Theme.TextDim);
+            string legendText = (vsCpu ? "TÚ" : "J1") + " / " + p2;
+            if (Lan) legendText = _localPlayer == 0 ? "J1 (TÚ) / J2" : "J1 / J2 (TÚ)";
+            TMP_Text legend = UIKit.Label(card.transform, legendText, 24, Theme.TextDim);
             UIKit.Region((RectTransform)legend.transform, 0f, 0.43f, 1f, 0.5f);
             for (int i = 0; i < rows.Length; i++)
             {
@@ -117,7 +129,7 @@ namespace Brooklyneir.UI
                 }, 42);
                 UIKit.At((RectTransform)cont.transform, 1f, 0f, -60f, 40f, 520f, 120f);
             }
-            else
+            else if (!Lan)
             {
                 Button again = UIKit.Button(Root, "REVANCHA", IconId.Restart, ButtonStyle.Primary, () => Game.Flow.RestartMatch(), 42);
                 UIKit.At((RectTransform)again.transform, 1f, 0f, -60f, 40f, 460f, 120f);

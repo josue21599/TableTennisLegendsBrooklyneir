@@ -3,6 +3,7 @@ using Brooklyneir.Audio;
 using Brooklyneir.CameraSystem;
 using Brooklyneir.Controls;
 using Brooklyneir.Gameplay;
+using Brooklyneir.Net;
 using Brooklyneir.Progression;
 using Brooklyneir.SaveSystem;
 using Brooklyneir.Tables;
@@ -31,6 +32,7 @@ namespace Brooklyneir.Core
             MatchController m = Game.Match;
             m.MatchFinished += OnMatchFinished;
             m.TrainingFinished += OnTrainingFinished;
+            m.LanStateChanged += OnLanState;
             _hud = new MatchHud();
             _hud.Build(Game.UI, Game.Match);
             _hud.SetVisible(false);
@@ -51,6 +53,7 @@ namespace Brooklyneir.Core
 
         public void GoToMenu()
         {
+            if (Game.Lan != null) Game.Lan.Close(); // leaving a LAN screen or results closes the connection
             State = AppState.Menu;
             if (Game.Match.Phase == MatchPhase.Inactive || !Game.Match.IsDemo) StartDemo();
             Game.UI.Replace(new MainMenuScreen());
@@ -101,6 +104,63 @@ namespace Brooklyneir.Core
             Game.Match.StartMatch(config);
             _hud.Bind();
             _hud.SetVisible(true);
+        }
+
+        /// <summary>LAN match on this phone (host or guest), started by LanLobby with the host's MatchSetup.</summary>
+        public void StartLanMatch(MatchConfig config, NetMatchSession session, int firstServer, string rivalName)
+        {
+            if (!Data.tutorialSeen)
+            {
+                // No tutorial now: the other phone is already counting down.
+                Data.tutorialSeen = true;
+                Data.rulesSeen = true;
+                Game.Save.MarkDirty();
+            }
+            _tournamentMatch = false;
+            State = AppState.Match;
+            Game.UI.Clear();
+            Game.Arena.Show(TableCatalog.Get(config.tableId));
+            Game.Audio.PlayMusic(MusicTrack.Match);
+            Game.Match.StartLanMatch(config, session, firstServer, rivalName);
+            _hud.Bind();
+            _hud.SetVisible(true);
+        }
+
+        void OnLanState(SessionState s)
+        {
+            if (State != AppState.Match || !Game.Match.IsLan) return;
+            switch (s)
+            {
+                case SessionState.Paused:
+                    if (!(Game.UI.Top is LanPauseScreen)) Game.UI.Push(new LanPauseScreen());
+                    break;
+                case SessionState.Playing:
+                    if (Game.UI.Top is LanPauseScreen) Game.UI.Clear();
+                    break;
+                case SessionState.OpponentLeft:
+                    Game.UI.Clear();
+                    Game.Match.FinishLanByAbandonment();
+                    break;
+                case SessionState.Void:
+                    Game.Match.Abort();
+                    Game.UI.Clear();
+                    GoToMenu();
+                    Game.UI.Toast("PARTIDA ANULADA: no se recuperó la conexión. No cuenta para nadie.", Theme.Danger);
+                    break;
+            }
+        }
+
+        void OnLanMatchFinished(MatchResult result)
+        {
+            NetMatchSession net = Game.Match.Net;
+            LanOutcome outcome = net != null && net.State == SessionState.OpponentLeft ? LanOutcome.OpponentLeft : LanOutcome.Finished;
+            int local = Game.Match.LanLocalPlayer;
+            State = AppState.Results;
+            RewardSummary rewards = LanRewards.ForMatch(result, local, outcome, Data, Game.Economy);
+            Game.Save.Save();
+            _hud.SetVisible(false);
+            Game.Audio.PlayMusic(MusicTrack.Menu);
+            Game.UI.Replace(new ResultsScreen(result, rewards, false, local, Game.Match.RivalName));
         }
 
         public void StartTournamentMatch()
@@ -161,12 +221,23 @@ namespace Brooklyneir.Core
         {
             if (State != AppState.Match && State != AppState.Training) return;
             if (Game.Match.Paused) return;
+            if (Game.Match.IsLan)
+            {
+                // Both phones pause through the host; the pause screen opens when it is confirmed.
+                Game.Match.SetPaused(true);
+                return;
+            }
             Game.Match.SetPaused(true);
             Game.UI.Push(new PauseScreen());
         }
 
         public void Resume()
         {
+            if (Game.Match.IsLan)
+            {
+                Game.Match.SetPaused(false); // the host sets a common restart tick; the screen closes then
+                return;
+            }
             Game.UI.Clear();
             Game.Match.SetPaused(false);
         }
@@ -198,6 +269,18 @@ namespace Brooklyneir.Core
 
         public void QuitToMenu()
         {
+            if (Game.Match.IsLan && State == AppState.Match && Game.Match.Phase != MatchPhase.MatchOver)
+            {
+                // Leaving a LAN match: the other player wins; here it counts as played and lost, nothing else.
+                MatchResult left = new MatchResult { Config = Game.Match.Config };
+                LanRewards.ForMatch(left, Game.Match.LanLocalPlayer, LanOutcome.LocalLeft, Data, Game.Economy);
+                Game.Save.Save();
+                Game.Lan.LeaveMatch();
+                Game.Match.Abort();
+                Game.UI.Clear();
+                GoToMenu();
+                return;
+            }
             if (_tournamentMatch && State == AppState.Match)
             {
                 // Leaving a tournament match counts as a loss, as announced in the dialog.
@@ -219,6 +302,11 @@ namespace Brooklyneir.Core
 
         void OnMatchFinished(MatchResult result)
         {
+            if (Game.Match.IsLan)
+            {
+                OnLanMatchFinished(result);
+                return;
+            }
             if (Game.Match.IsDemo)
             {
                 StartDemo();

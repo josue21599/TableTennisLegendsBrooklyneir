@@ -8,7 +8,7 @@
 ![C#](https://img.shields.io/badge/C%23-.NET%20Standard%202.1-512BD4?logo=csharp&logoColor=white)
 ![URP](https://img.shields.io/badge/Render-URP%2017-2C7BE5)
 ![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)
-![Tests](https://img.shields.io/badge/tests-163%20pasan-brightgreen)
+![Tests](https://img.shields.io/badge/tests-164%20pasan-brightgreen)
 
 </div>
 
@@ -56,7 +56,7 @@ El objetivo técnico era construir un juego completo **casi sin assets externos*
 | **Plataforma** | Android 8.0+ (ARM64, IL2CPP) |
 | **Motor** | Unity 6.6 · Universal Render Pipeline |
 | **Lenguaje** | C# |
-| **Código** | ~14.900 líneas en 78 archivos + 163 pruebas automáticas |
+| **Código** | ~14.900 líneas en 78 archivos + 164 pruebas automáticas |
 | **Conexión** | No necesita Internet ni cuentas (sin anuncios ni pagos) |
 
 ---
@@ -218,7 +218,7 @@ Guía completa de compilación, firma y exportación a Android Studio: **[BUILD_
 
 ## Pruebas
 
-**163 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
+**164 pruebas automáticas** (NUnit, modo EditMode) sobre la lógica del juego:
 
 | Área | Qué se comprueba |
 |---|---|
@@ -277,7 +277,7 @@ Assets/
 - [x] Progresión y guardado local
 - [x] Interfaz pixel art con la tipografía Jersey 10
 - [x] Animaciones de mano (golpe según su tipo, reposo y celebración) y de público (miradas, aplausos, saltos y ola)
-- [x] 163 pruebas automáticas
+- [x] 164 pruebas automáticas
 - [x] Pruebas manuales en un móvil Android real (24 de 24)
 - [ ] Publicación en Google Play
 

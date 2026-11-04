@@ -149,6 +149,15 @@ namespace UnityEngine.UI
     }
     public class HorizontalLayoutGroup : HorizontalOrVerticalLayoutGroup { }
     public class VerticalLayoutGroup : HorizontalOrVerticalLayoutGroup { }
+    public class GridLayoutGroup : LayoutGroup
+    {
+        public enum Constraint { Flexible, FixedColumnCount, FixedRowCount }
+        public Vector2 cellSize { get; set; }
+        public Vector2 spacing { get; set; }
+        public TextAnchor childAlignment { get; set; }
+        public Constraint constraint { get; set; }
+        public int constraintCount { get; set; }
+    }
 
     public class ContentSizeFitter : UIBehaviour
     {

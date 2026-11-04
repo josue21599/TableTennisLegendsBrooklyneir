@@ -4,6 +4,7 @@ using Brooklyneir.CameraSystem;
 using Brooklyneir.Config;
 using Brooklyneir.Controls;
 using Brooklyneir.Gameplay;
+using Brooklyneir.Net;
 using Brooklyneir.Progression;
 using Brooklyneir.SaveSystem;
 using Brooklyneir.Settings;
@@ -117,6 +118,12 @@ namespace Brooklyneir.Core
             Game.UI = ui;
 
             ApplySettings();
+
+            // LAN connection (two phones on the same Wi-Fi); idle until a LAN screen uses it.
+            LanLobby lan = gameObject.AddComponent<LanLobby>();
+            TextAsset balanceText = Resources.Load<TextAsset>("Config/balance");
+            lan.Init(balanceText != null ? balanceText.text : "");
+            Game.Lan = lan;
 
             AppFlow flow = gameObject.AddComponent<AppFlow>();
             Game.Flow = flow;

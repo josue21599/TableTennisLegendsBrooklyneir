@@ -100,6 +100,9 @@ namespace Brooklyneir.Net
         public int RemotePlayer { get { return 1 - LocalPlayer; } }
         /// <summary>While true the ball must not move (paused, waiting, or before the resume tick).</summary>
         public bool BallFrozen { get { return State != SessionState.Playing; } }
+        /// <summary>A restart (after a pause or a void rally) is scheduled for ResumeTick.</summary>
+        public bool ResumeScheduled { get { return _resumeScheduled; } }
+        public uint ResumeTick { get { return _resumeTick; } }
 
         public NetMatchSession(NetRole role, NetConfig config, PhysicsConfig physics, INetLink link, int firstServer)
         {

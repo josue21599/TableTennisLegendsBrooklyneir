@@ -23,7 +23,7 @@ namespace Brooklyneir.Gameplay
     /// frame and tells the audio, effects, camera and HUD what happened. Rules live in the pure
     /// classes (RallyReferee, MatchScore, PowerUpSystem, ShotModel); this class only orchestrates.
     /// </summary>
-    public class MatchController : MonoBehaviour
+    public partial class MatchController : MonoBehaviour
     {
         public static readonly Color[] PlayerColors = { new Color(1f, 0.48f, 0.1f), new Color(0.13f, 0.76f, 1f) };
         static readonly Color GloveColor = new Color(0.93f, 0.92f, 0.9f);
@@ -122,11 +122,13 @@ namespace Brooklyneir.Gameplay
             _rng = new GameRandom(Environment.TickCount);
             _sim = new BallSimulation(cfg.physics);
             _scratch = new BallSimulation(cfg.physics);
+            _localSim = _sim;
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             if (GetComponent<Brooklyneir.UI.ShotDebugOverlay>() == null) gameObject.AddComponent<Brooklyneir.UI.ShotDebugOverlay>();
 #endif
             _shots = new ShotModel(cfg, _rng);
             Referee = new RallyReferee();
+            _localReferee = Referee;
             Powers = new PowerUpSystem(cfg.powerUps, _rng);
             Powers.Activated += OnPowerActivated;
             Powers.Ended += OnPowerEnded;
@@ -185,6 +187,12 @@ namespace Brooklyneir.Gameplay
         /// <param name="remotePlayer">Player on the other phone (0 or 1), or -1. Only quick and custom matches accept it.</param>
         public void StartMatch(MatchConfig config, int remotePlayer)
         {
+            StartMatchCore(config, remotePlayer, -1);
+        }
+
+        /// <param name="forcedFirstServer">0 or 1 to fix the first server (LAN: decided by the host), -1 = random.</param>
+        void StartMatchCore(MatchConfig config, int remotePlayer, int forcedFirstServer)
+        {
             Abort();
 #if UNITY_EDITOR
             if (DebugOptions.ViewAsGuest && remotePlayer < 0 && config.mode == GameMode.VersusCpu)
@@ -217,7 +225,7 @@ namespace Brooklyneir.Gameplay
             _input.SetViewSide(View);
             _input.SetEnabled(Human[0] || Human[1]);
 
-            int firstServer = _rng.Value() < 0.5f ? 0 : 1;
+            int firstServer = forcedFirstServer == 0 || forcedFirstServer == 1 ? forcedFirstServer : (_rng.Value() < 0.5f ? 0 : 1);
             if (IsTraining) firstServer = 1;
             int points = IsDemo ? 999 : config.pointsToWin;
             Score = new MatchScore(points, config.SetsToWin, config.winByTwo, firstServer);
@@ -327,6 +335,7 @@ namespace Brooklyneir.Gameplay
         /// <summary>Stops everything and hides the match objects. Safe to call at any time.</summary>
         public void Abort()
         {
+            LanDetach();
             Phase = MatchPhase.Inactive;
             Paused = false;
             Time.timeScale = 1f;
@@ -370,6 +379,13 @@ namespace Brooklyneir.Gameplay
         public void SetPaused(bool paused)
         {
             if (Phase == MatchPhase.Inactive || IsDemo) return;
+            if (IsLan)
+            {
+                // LAN: both phones pause together through the host; the game time never stops here.
+                if (paused) _net.RequestPause(Brooklyneir.Net.PauseReason.Button);
+                else _net.RequestResume();
+                return;
+            }
             Paused = paused;
             Time.timeScale = paused ? 0f : 1f;
             _input.SetEnabled(!paused && (Human[0] || Human[1]));
@@ -389,7 +405,9 @@ namespace Brooklyneir.Gameplay
 
         void Update()
         {
-            if (Phase == MatchPhase.Inactive || Paused) return;
+            if (Phase == MatchPhase.Inactive) return;
+            if (IsLan) { LanUpdate(); return; }
+            if (Paused) return;
             float dt = Mathf.Min(Time.deltaTime, 0.05f);
             if (dt <= 0f) return;
 
@@ -463,6 +481,7 @@ namespace Brooklyneir.Gameplay
         void UpdateClock(float dt)
         {
             MatchClock += dt;
+            if (IsLanGuest) return; // the host decides when time is up (PointResult.TimeUp)
             if (Config.timeLimitMinutes > 0f && !_timeUpAnnounced && MatchClock >= Config.timeLimitMinutes * 60f)
             {
                 _timeUpAnnounced = true;
@@ -529,8 +548,9 @@ namespace Brooklyneir.Gameplay
             ctx.IsServe = true;
             ShotResult res = _shots.Compute(ctx);
             if (IsPracticeWall) _practiceRef.OnServe();
-            else Referee.StartRally(server);
+            else if (!IsLanHost) Referee.StartRally(server); // LAN host: the arbiter starts it (LocalServe)
             Launch(server, ctx.ContactPoint, res);
+            if (IsLan) LanSendLaunch(true, res);
             Phase = MatchPhase.Rally;
             Rackets[server].PlaySwing(0.3f, ShotType.Serve);
             PlaySfx(Brooklyneir.Audio.Sfx.Serve, 0.9f);
@@ -691,6 +711,7 @@ namespace Brooklyneir.Gameplay
         /// </summary>
         void BeginHit(int p, Vector3 contact, float offset)
         {
+            if (IsLan) _net.LocalHitBegin(contact, _lanTick);
             float dwell = _cfg.racket.hitDwellSeconds;
             if (!_drivers[p].UsesHitDwell || dwell <= 0f)
             {
@@ -733,16 +754,29 @@ namespace Brooklyneir.Gameplay
             ShotResult res = _shots.Compute(ctx);
             DebugShot(p, ctx, res);
             if (IsPracticeWall) _practiceRef.OnRacketHit();
+            else if (IsLanHost) _net.Arbiter.HostHit(p);
             else Referee.RegisterHit(p);
             Powers.OnShot(p, res.ConsumedCurve, res.ConsumedSuperSmash, res.ConsumedSpecial);
             Launch(p, contact, res);
+            if (IsLan) LanSendLaunch(false, res);
+            PresentHit(p, contact, res.Type, res.ConsumedCurve, res.CameraShake);
+            if (IsTraining && p == 0)
+            {
+                _lastTrainingShot = res;
+                _awaitingLanding = true;
+            }
+        }
+
+        /// <summary>What a hit looks and sounds like, and its stats (local hits and, in LAN, the other phone's).</summary>
+        void PresentHit(int p, Vector3 contact, ShotType type, bool consumedCurve, float cameraShake)
+        {
             RallyHits++;
             _result.Hits[p]++;
-            if (res.Type == ShotType.Smash || res.Type == ShotType.SuperSmash) _result.Smashes[p]++;
+            if (type == ShotType.Smash || type == ShotType.SuperSmash) _result.Smashes[p]++;
 
             float strength;
             Color fx;
-            switch (res.Type)
+            switch (type)
             {
                 case ShotType.Smash: strength = 0.9f; fx = new Color(1f, 0.85f, 0.4f); Say(p, "¡REMATE!", fx); break;
                 case ShotType.SuperSmash: strength = 1f; fx = new Color(1f, 0.3f, 0.3f); Say(p, "¡SÚPER REMATE!", fx); break;
@@ -752,20 +786,15 @@ namespace Brooklyneir.Gameplay
                 case ShotType.Defensive: strength = 0.25f; fx = new Color(0.7f, 0.9f, 1f); break;
                 default: strength = 0.4f; fx = Color.white; break;
             }
-            if (res.ConsumedCurve) Say(p, "¡CURVA!", PowerVisuals.ColorOf(PowerUpType.Curve));
-            Rackets[p].PlaySwing(strength, res.Type);
+            if (consumedCurve) Say(p, "¡CURVA!", PowerVisuals.ColorOf(PowerUpType.Curve));
+            Rackets[p].PlaySwing(strength, type);
             _vfx.Hit(contact, fx, strength);
-            if (res.Type == ShotType.SuperSmash || res.Type == ShotType.Special || res.Type == ShotType.Smash) _vfx.Smash(contact, fx);
+            if (type == ShotType.SuperSmash || type == ShotType.Special || type == ShotType.Smash) _vfx.Smash(contact, fx);
             PlaySfx(strength > 0.85f ? Brooklyneir.Audio.Sfx.HitSmash : (strength < 0.3f ? Brooklyneir.Audio.Sfx.HitSoft : Brooklyneir.Audio.Sfx.HitClean), 0.6f + strength * 0.4f, _rng.Range(0.95f, 1.06f));
             if (strength > 0.85f) PlaySfx(Brooklyneir.Audio.Sfx.Whoosh, 0.6f);
             if (Human[p] && Game.Haptics != null) Game.Haptics.Pulse(strength);
-            _camera.Shake(res.CameraShake);
-            if (res.Type == ShotType.SuperSmash || res.Type == ShotType.Special) _camera.Punch(1f);
-            if (IsTraining && p == 0)
-            {
-                _lastTrainingShot = res;
-                _awaitingLanding = true;
-            }
+            _camera.Shake(cameraShake);
+            if (type == ShotType.SuperSmash || type == ShotType.Special) _camera.Punch(1f);
         }
 
         /// <summary>Editor / development builds only: the hit explained on screen and in the Console.</summary>
@@ -784,9 +813,16 @@ namespace Brooklyneir.Gameplay
 
         void Launch(int hitter, Vector3 from, ShotResult res)
         {
-            _sim.Launch(from, res.Velocity, res.SpinAccel);
+            if (IsLan) _net.Ball.LocalLaunch(from, res.Velocity, res.SpinAccel, _net.Now, _net.ScaleTowardP0, _net.ScaleTowardP1);
+            else _sim.Launch(from, res.Velocity, res.SpinAccel);
             _ballInPlay = true;
             _ballView.SetSpin(res.Velocity, res.SpinAccel);
+            ShowLandingAndWarn(hitter);
+        }
+
+        /// <summary>Landing marker for the shot just launched, and the other racket's driver told about it.</summary>
+        void ShowLandingAndWarn(int hitter)
+        {
             Vector3 landing;
             float t;
             bool showMarker = Game.Save == null || Game.Save.Data.settings.showLandingMarker;
@@ -977,8 +1013,13 @@ namespace Brooklyneir.Gameplay
 
         void EndRally()
         {
+            EndRallyWith(Referee.Winner, Referee.Reason);
+        }
+
+        /// <param name="winner">Point winner (-1 = none). LAN guest: from the host's PointResult.</param>
+        void EndRallyWith(int winner, PointReason pointReason)
+        {
             _marker.Hide();
-            int winner = Referee.Winner;
             Powers.OnRallyEnded();
             if (RallyHits > _result.LongestRally) _result.LongestRally = RallyHits;
 
@@ -995,6 +1036,7 @@ namespace Brooklyneir.Gameplay
             }
             int before0 = Score.Points[0], before1 = Score.Points[1];
             ScoreEvent ev = Score.AwardPoint(winner);
+            if (IsLanHost) _net.HostSendPoint(Brooklyneir.Net.ScoreMirror.Build(Score, ev, pointReason, MatchClock));
             if (ev.SetWon)
             {
                 int[] setScore = { before0, before1 };
@@ -1013,7 +1055,7 @@ namespace Brooklyneir.Gameplay
                 _phaseTimer = 1.2f;
                 return;
             }
-            string reason = RallyReferee.Describe(Referee.Reason);
+            string reason = RallyReferee.Describe(pointReason);
             Say(winner, "¡PUNTO!", PlayerColors[winner]);
             Say(1 - winner, reason, new Color(1f, 1f, 1f, 0.85f));
             PlaySfx(Brooklyneir.Audio.Sfx.Point, 0.9f);
@@ -1030,7 +1072,7 @@ namespace Brooklyneir.Gameplay
                 Say(-1, "PUNTO DE PARTIDO", new Color(1f, 0.85f, 0.3f));
             }
             if (ev.MatchWon) _matchWinner = winner;
-            if (PointScored != null) PointScored(winner, Referee.Reason);
+            if (PointScored != null) PointScored(winner, pointReason);
         }
 
         void FinishMatch()
@@ -1291,6 +1333,16 @@ namespace Brooklyneir.Gameplay
 
         void OnApplicationPause(bool paused)
         {
+            if (IsLan)
+            {
+                if (paused && Phase != MatchPhase.MatchOver)
+                {
+                    _net.RequestPause(Brooklyneir.Net.PauseReason.Background);
+                    if (Game.Lan != null) Game.Lan.FlushNow(); // no more frames until the app comes back
+                }
+                if (paused && Game.Save != null) Game.Save.SaveIfDirty();
+                return;
+            }
             // Android: leaving the app (call, home button) pauses the match; nothing is lost.
             if (paused && !Paused && Phase != MatchPhase.Inactive && !IsDemo && Phase != MatchPhase.MatchOver)
             {

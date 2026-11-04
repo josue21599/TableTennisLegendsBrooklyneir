@@ -9,8 +9,9 @@ namespace Brooklyneir.Net
     /// <summary>
     /// Coins, stats and achievements for a LAN match, on each phone for its own player, from the
     /// host's final result. A void match (no reconnection in time) gives nothing to anybody. If
-    /// one player leaves, the one who stays wins; the one who leaves loses and the match gives it
-    /// no coins (achievements already reached still pay: they are milestones, not this match's prize).
+    /// one player leaves, the one who stays wins. The one who leaves gets no coins and no
+    /// achievements: the match only counts in lanMatches, as played and lost (lanWins unchanged),
+    /// and no other stat moves, so no achievement can be reached later from this match either.
     /// Pure logic over the save data, unit-tested; the caller saves afterwards.
     /// </summary>
     public static class LanRewards
@@ -21,6 +22,12 @@ namespace Brooklyneir.Net
             if (outcome == LanOutcome.Void || r == null) return sum;
             int before = eco.Coins;
             StatsData st = data.stats;
+            if (outcome == LanOutcome.LocalLeft)
+            {
+                st.lanMatches++;
+                sum.Lines.Add("Abandonaste el partido: cuenta como perdido");
+                return sum;
+            }
             int me = localPlayer == 1 ? 1 : 0;
             bool won = outcome == LanOutcome.OpponentLeft || (outcome == LanOutcome.Finished && r.Winner == me);
 
@@ -37,10 +44,6 @@ namespace Brooklyneir.Net
                 st.lanWins++;
                 eco.AddCoins(eco.Tuning.lanWin);
                 sum.Lines.Add(outcome == LanOutcome.OpponentLeft ? "Victoria: el rival abandonó" : "Victoria en LAN");
-            }
-            else if (outcome == LanOutcome.LocalLeft)
-            {
-                sum.Lines.Add("Abandonaste el partido");
             }
             else
             {

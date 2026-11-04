@@ -69,17 +69,20 @@ namespace Brooklyneir.Gameplay
 
     /// <summary>
     /// The player on the other phone. The racket follows positions from a RemotePaddleBuffer,
-    /// drawn a little in the past. Its hits are never detected here: they arrive as messages
-    /// (phase 2). In phase 1 nothing feeds the buffer yet.
+    /// drawn a little in the past. Its hits are never detected here: they arrive as messages.
+    /// In a LAN match the buffer is the session's (fed by Paddle messages) and Clock is set every
+    /// frame from the shared tick clock (ExternalClock); otherwise Tick advances it.
     /// </summary>
     public sealed class RemotePaddleDriver : PaddleDriver
     {
         readonly RacketController _racket;
-        public readonly RemotePaddleBuffer Buffer = new RemotePaddleBuffer();
+        public RemotePaddleBuffer Buffer = new RemotePaddleBuffer();
         /// <summary>How far in the past the remote racket is drawn (s).</summary>
         public float RenderDelay = 0.1f;
-        /// <summary>Shared match clock (s). Phase 1: advanced by Tick; phase 2: set from the synced clock.</summary>
+        /// <summary>Shared match clock (s).</summary>
         public double Clock;
+        /// <summary>Clock is set from outside (LAN: the synced tick clock) instead of advanced by Tick.</summary>
+        public bool ExternalClock;
 
         public RemotePaddleDriver(RacketController racket) { _racket = racket; }
 
@@ -88,7 +91,7 @@ namespace Brooklyneir.Gameplay
 
         public override void Tick(float dt, bool ballComingToMe)
         {
-            Clock += dt;
+            if (!ExternalClock) Clock += dt;
             Vector3 p;
             if (Buffer.TrySample(Clock - RenderDelay, out p)) _racket.SetTarget(p);
         }

@@ -6,7 +6,9 @@
         "Unity.RenderPipelines.Core.Runtime",
         "UnityEngine.UI",
         "Unity.InputSystem",
-        "Unity.TextMeshPro"
+        "Unity.TextMeshPro",
+        "Unity.Networking.Transport",
+        "Unity.Collections"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
@@ -15,6 +17,12 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": [],
+    "versionDefines": [
+        {
+            "name": "com.unity.transport",
+            "expression": "2.0.0",
+            "define": "BROOKLYNEIR_TRANSPORT"
+        }
+    ],
     "noEngineReferences": false
 }

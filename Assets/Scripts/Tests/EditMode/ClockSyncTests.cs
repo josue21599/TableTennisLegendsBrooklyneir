@@ -99,5 +99,35 @@ namespace Brooklyneir.Tests
             Assert.Greater(changesSeen, 5);
             Assert.AreEqual(offset, c.AppliedOffset, 1e-6, "converged to the final offset");
         }
+
+        [Test]
+        public void TheFirstSyncCanMoveTheTickBackOnceWhenTheGuestsClockIsAhead()
+        {
+            // The guest's app has been open 10 minutes longer than the host's: before syncing, its
+            // ticks are far ahead. Once synced it must follow the host at once, not wait 10 minutes.
+            ClockSync c = new ClockSync(Rate);
+            const double offset = -600.0;
+            double now = 700.0;
+            c.Update(now);
+            uint unsynced = c.Tick(now);
+            Assert.AreEqual((uint)(700.0 * Rate), unsynced);
+            Exchange(c, now, offset, 0.01, 0.01);
+            now += 0.02;
+            c.Update(now);
+            uint synced = c.Tick(now);
+            ClockSync host = ClockSync.ForHost(Rate);
+            Assert.LessOrEqual(Math.Abs((long)synced - (long)host.Tick(now + offset)), 1, "follows the host right after the first sample");
+            // From then on it never goes back, even when a better sample moves the estimate back a little.
+            uint last = synced;
+            for (int i = 0; i < 300; i++)
+            {
+                now += 1.0 / 60.0;
+                if (i == 10) Exchange(c, now, offset - 0.05, 0.002, 0.002);
+                c.Update(now);
+                uint t = c.Tick(now);
+                Assert.GreaterOrEqual(t, last);
+                last = t;
+            }
+        }
     }
 }
